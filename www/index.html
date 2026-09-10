@@ -275,6 +275,21 @@ const bandoDe = j => j.convertido ? 'lobos' : ROLES[j.rol].b;
 const esLobo = j => bandoDe(j)==='lobos';
 const app = document.getElementById('app');
 const render = (h,enJuego=false) => { app.innerHTML = h; window.scrollTo(0,0); menuBtn.style.display = enJuego?'flex':'none'; guardar(); };
+
+/* ============ INSTALAR PWA ============ */
+let deferredInstall=null;
+const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+const yaInstalada = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+window.addEventListener('beforeinstallprompt', e=>{
+ e.preventDefault(); deferredInstall=e;
+ if(S._pantalla==='inicio') pInicio();
+});
+window.addEventListener('appinstalled', ()=>{ deferredInstall=null; if(S._pantalla==='inicio') pInicio(); });
+function instalarApp(){
+ if(!deferredInstall) return;
+ deferredInstall.prompt();
+ deferredInstall.userChoice.finally(()=>{ deferredInstall=null; pInicio(); });
+}
 const esc = s => String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 
 /* ============ INICIO ============ */
@@ -285,7 +300,15 @@ function pInicio(){
   <h1>El Lobo</h1>
   <p class="tenue">Un solo móvil. Un narrador invisible.<br>El pueblo duerme, alguien no.</p>
   <button class="btn" onclick="pJugadores()">Empezar partida</button>
-  <button class="btn ghost" onclick="pReglas()">Cómo se juega</button></div>`);
+  <button class="btn ghost" onclick="pReglas()">Cómo se juega</button>
+  ${yaInstalada()?'':`<div class="card" style="text-align:left;margin-top:18px">
+   <p style="margin:0 0 8px"><strong>📲 Instalar la app</strong></p>
+   ${deferredInstall
+    ?`<button class="btn" onclick="instalarApp()">Instalar en este dispositivo</button>`
+    :esIOS()
+     ?`<p class="tenue" style="margin:0">En iPhone/iPad: toca <strong>Compartir</strong> (el icono □↑) y luego <strong>Añadir a pantalla de inicio</strong>.</p>`
+     :`<p class="tenue" style="margin:0">Abre el menú del navegador (⋮) y elige <strong>Instalar app</strong> o <strong>Añadir a pantalla de inicio</strong>.</p>`}
+  </div>`}</div>`);
 }
 function pReglas(){
  render(`<header class="top"><h2>Cómo se juega</h2><button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pInicio()">Atrás</button></header>
