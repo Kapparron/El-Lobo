@@ -77,12 +77,268 @@ header.top{display:flex;justify-content:space-between;align-items:center;gap:10p
 </head>
 <body>
 <button id="menuBtn" onclick="reiniciar()" style="display:none;align-items:center;justify-content:center;position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:50;width:40px;height:40px;padding:0;border-radius:50%;background:var(--niebla);border:none;font-size:1.1rem;line-height:1;color:var(--luna)">🏠</button>
+<button id="langBtn" onclick="toggleIdioma()" style="display:flex;align-items:center;justify-content:center;position:fixed;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:50;width:40px;height:40px;padding:0;overflow:hidden;border-radius:50%;background:var(--niebla);border:none;font-size:1.3rem;line-height:1"></button>
 <div id="app"></div>
 <script>
+/* ============ IDIOMA ============ */
+let idioma = (function(){ try{ return localStorage.getItem('elLobo_idioma')||'es'; }catch(e){ return 'es'; } })();
+const T = {
+ es:{
+  'inicio.subtitulo':'Un solo móvil. Un narrador invisible.<br>El pueblo duerme, alguien no.',
+  'inicio.empezar':'Empezar partida', 'inicio.comoJuega':'Cómo se juega',
+  'inicio.instalarTitulo':'📲 Instalar la app', 'inicio.instalarBtn':'Instalar en este dispositivo',
+  'inicio.instalarIOS':'En iPhone/iPad: toca <strong>Compartir</strong> (el icono □↑) y luego <strong>Añadir a pantalla de inicio</strong>.',
+  'inicio.instalarOtros':'Abre el menú del navegador (⋮) y elige <strong>Instalar app</strong> o <strong>Añadir a pantalla de inicio</strong>.',
+  'reglas.titulo':'Cómo se juega',
+  'reglas.p1':'Pasáis este móvil en círculo. Cada uno ve su rol en secreto y se lo pasa al siguiente.',
+  'reglas.p2':'Después el móvil se queda con quien haga de narrador: la app le dicta qué decir cada noche y a quién despertar.',
+  'reglas.p3':'De noche los lobos devoran. De día el pueblo debate y vota. Se acaba cuando no queda ningún lobo, o cuando los lobos igualan en número al resto.',
+  'reglas.nocheTitulo':'La noche, paso a paso',
+  'reglas.nocheTexto':'El narrador va llamando a cada rol por orden, siempre con el mismo tono y haciendo pausas aunque ese rol no exista en la partida: los silencios delatan. Nadie habla de noche; todo se hace con gestos.',
+  'reglas.alguacilTitulo':'El Alguacil',
+  'reglas.alguacilTexto':'No es una carta. El pueblo lo elige por votación el primer día: su voto vale doble y, al morir, señala a su sucesor antes de revelar su rol.',
+  'reglas.rolesTitulo':'Qué hace cada rol', 'reglas.rolesHint':'Toca un rol para ver sus instrucciones completas.',
+  'reglas.volver':'Volver al inicio',
+  'jugadores.titulo':'¿Quién juega?', 'jugadores.placeholder':'Nombre', 'jugadores.anadir':'Añadir al pueblo',
+  'jugadores.duplicado':'Ese nombre ya está en la lista.',
+  'jugadores.hint':'Añádelos en el mismo orden en que estáis sentados: el Zorro y el Domador de Osos miran a sus vecinos.',
+  'jugadores.quitar':'quitar', 'jugadores.minimo':'Hacen falta al menos 4 vecinos.', 'jugadores.elegirRoles':'Elegir los roles',
+  'roles.titulo':'Roles', 'roles.mazoHint':'Elige un mazo hecho y retócalo si quieres.',
+  'roles.necesitas':'Necesitas', 'roles.cartas':'cartas', 'roles.ladronExtra':'(2 extra para el Ladrón)',
+  'roles.faltan':'faltan', 'roles.sobran':'sobran',
+  'roles.enMazo':'En el mazo', 'roles.alguacilTitulo':'El Alguacil',
+  'roles.alguacilDesc':'Se elige el día 1 por votación; su voto vale doble y nombra sucesor al morir.',
+  'roles.activado':'Activado', 'roles.desactivado':'Desactivado',
+  'roles.repartir':'Repartir cartas',
+  'reparto.pasa':'Pásale el móvil a', 'reparto.noMires':'Que nadie más mire la pantalla.',
+  'reparto.soyPrefijo':'Soy ', 'reparto.soySufijo':', ver mi carta',
+  'verRol.eres':', eres', 'verRol.tuGente':'Tu gente: ', 'verRol.tuManada':'Tu manada: ',
+  'verRol.solitario':'Cazas en solitario.', 'verRol.ocultar':'Ocultar y pasar el móvil',
+  'listos.titulo':'Todos tienen carta',
+  'listos.texto':'Ahora el móvil se queda con el narrador. Él leerá en voz alta lo que aparezca en pantalla.',
+  'noche.label':'Noche', 'dia.label':'Día',
+  'noche.ladron.t':'El Ladrón', 'noche.ladron.g':'«Ladrón, despierta. Estas son las dos cartas que sobraron.»',
+  'noche.ladron.hint':'Si las dos son lobo, está obligado a cogerlas.', 'noche.ladron.btn':'Se queda como está',
+  'noche.cupido.t':'Cupido', 'noche.cupido.g':'«Cupido, despierta y elige a los dos enamorados.»',
+  'noche.amantes.t':'Los enamorados', 'noche.amantes.g':'«Enamorados, abrid los ojos y miraos. Si uno muere, el otro muere de pena.»',
+  'noche.amantes.btn':'Ya se han visto',
+  'noche.hermana.t':'Las dos hermanas', 'noche.hermana.g':'«Hermanas, abrid los ojos y reconoceos.»',
+  'noche.hermano.t':'Los tres hermanos', 'noche.hermano.g':'«Hermanos, abrid los ojos y reconoceos.»',
+  'noche.perrolobo.t':'El Perro-Lobo', 'noche.perrolobo.g':'«Perro-Lobo, decide: ¿aldeano o lobo?»',
+  'noche.perrolobo.si':'Se une a los lobos', 'noche.perrolobo.no':'Se queda como aldeano',
+  'noche.salvaje.t':'Niño Salvaje', 'noche.salvaje.g':'«Niño Salvaje, despierta y elige a tu mentor.»',
+  'noche.sectario.t':'El Sectario',
+  'noche.sectario.g1':'«Narrador, divide a los vecinos en dos grupos. Luego enséñaselos al Sectario.»',
+  'noche.sectario.grupoA':'Grupo A', 'noche.sectario.grupoB':'Grupo B', 'noche.sectario.sinGrupo':'Sin grupo',
+  'noche.sectario.mostrar':'Enseñarle los grupos al Sectario',
+  'noche.sectario.g2':'«Sectario, estos son los dos grupos. Gana si muere uno entero, sea del bando que sea.»',
+  'noche.sectario.vistos':'Ya los ha visto',
+  'noche.gitana.t':'La Gitana', 'noche.gitana.g':'«Gitana, haz tu pregunta a los muertos. El espíritu responde sí o no.»',
+  'noche.gitana.vacio':'Aún no hay espíritus con quien hablar.', 'noche.gitana.btn':'Ya ha preguntado',
+  'noche.comediante.t':'El Comediante',
+  'noche.comediante.g':'«Comediante, elige cuál de las tres cartas de la mesa vas a interpretar esta noche.»',
+  'noche.comediante.noActua':'Esta noche no actúa',
+  'noche.comediante.gVacio':'«Comediante, no quedan cartas libres esta partida.»', 'noche.comediante.vale':'Vale',
+  'noche.vidente.t':'La Vidente', 'noche.vidente.g':'«Vidente, despierta y señala a quién quieres descubrir.»',
+  'noche.salvador.t':'El Salvador', 'noche.salvador.g':'«Salvador, despierta. ¿A quién proteges esta noche?»',
+  'noche.salvador.anochePrefijo':'Anoche protegió a ', 'noche.salvador.anocheSufijo':': hoy no puede repetir.',
+  'noche.zorro.t':'El Zorro', 'noche.zorro.g':'«Zorro, despierta y olfatea a un vecino y a los dos que tiene al lado.»',
+  'noche.lobos.t':'Los hombres lobo', 'noche.lobos.g':'«Lobos, abrid los ojos. Elegid a vuestra víctima.»',
+  'noche.nina.t':'Niña Pequeña',
+  'noche.nina.g':'«Mientras los lobos elegían, la Niña entreabrió los ojos para espiarlos. ¿La han pillado?»',
+  'noche.nina.si':'Sí, la pillan espiando', 'noche.nina.no':'No, no se dan cuenta',
+  'noche.feroz.t':'El Lobo Feroz', 'noche.feroz.g':'«Lobo Feroz, aún no ha caído ninguno de los tuyos: elige una segunda víctima.»',
+  'noche.feroz.btn':'Se conforma con una',
+  'noche.albino.t':'El Lobo Albino', 'noche.albino.g':'«Lobo Albino, esta noche puedes devorar a uno de los tuyos.»',
+  'noche.albino.btn':'Esta noche no',
+  'noche.infecto.t':'Infecto Padre de los Lobos', 'noche.infecto.g':'«Padre de los lobos: ¿infectas a la víctima en lugar de devorarla?»',
+  'noche.infecto.victimaPrefijo':'Víctima de esta noche: ', 'noche.infecto.victimaSufijo':' Solo una vez por partida.',
+  'noche.infecto.si':'Infectarla', 'noche.infecto.no':'No, que muera',
+  'noche.bruja.t':'La Bruja', 'noche.bruja.g':'«Bruja, despierta. Esta es la víctima de esta noche.»',
+  'noche.bruja.muereEsta':'Muere esta noche', 'noche.bruja.nadie':'nadie',
+  'noche.bruja.vida':'Usa la poción de vida', 'noche.bruja.muerteHint':'Poción de muerte: toca a quién envenena.',
+  'noche.bruja.noHaceNada':'No hace nada',
+  'noche.flautista.t':'El Flautista', 'noche.flautista.g':'«Flautista, despierta y encanta a dos vecinos con tu melodía.»',
+  'noche.flautista.encantados':'Encantados: ', 'noche.flautista.ninguno':'ninguno',
+  'noche.encantados.t':'Los encantados',
+  'noche.encantados.g':'«Encantados, abrid los ojos y reconoceos. Seguid jugando con vuestro bando.»',
+  'noche.encantados.nadie':'todavía nadie',
+  'noche.guardia.t':'El Guardia', 'noche.guardia.g':'«Guardia, prepara el anuncio que el Alguacil te ha encargado.»',
+  'ladronRoba.solo':'Solo para el Ladrón — ahora eres',
+  'videnteVe.solo':'Enséñale la pantalla solo a la Vidente', 'videnteVe.infectado':' (infectado)',
+  'zorro.solo':'Solo para el Zorro — ', 'zorro.hueleLobo':'Huele a lobo', 'zorro.niRastro':'Ni rastro',
+  'zorro.conserva':'Conserva su olfato una noche más.', 'zorro.pierde':'Pierde su poder el resto de la partida.',
+  'amanece.titulo':'Amanece', 'amanece.nadieMurio':'Nadie ha muerto', 'amanece.suerte':'Alguien durmió con suerte.',
+  'amanece.gruñe':'<strong>Grrrr.</strong> El oso del Domador gruñe: hay un lobo sentado justo a su lado.',
+  'comun.era':'era',
+  'causa.lobos':'devorado por los lobos', 'causa.espada':'muerto por la espada oxidada',
+  'causa.albino':'devorado por el Lobo Albino', 'causa.bruja':'envenenado por la Bruja',
+  'causa.pueblo':'linchado por el pueblo', 'causa.empate':'sacrificado por el empate',
+  'causa.cazador':'abatido por el Cazador', 'causa.amor':'muerto de pena por su amor',
+  'cazador.titulo':'El disparo del Cazador', 'cazador.guionResto':' cae, pero alza el arma. ¿A quién se lleva con él?',
+  'sucesor.texto':'El Alguacil ha muerto. Antes de revelar su carta, señala a su sucesor.',
+  'sucesor.ninguno':'Que no haya sucesor',
+  'eleccion.titulo':'Elección del Alguacil',
+  'eleccion.guion':'«El pueblo elige a su Alguacil. Su voto valdrá doble el resto de la partida.»',
+  'eleccion.votos':'votos.', 'eleccion.cerrar':'Cerrar elección',
+  'dia.titulo':'El pueblo debate', 'dia.vivos':'vivos',
+  'dia.guionNormal':'«Hablad. Cuando estéis listos, votad a quién lincháis.»',
+  'dia.guionSinDebate':'«Segunda votación por orden del Juez, sin debate. Votad directamente.»',
+  'dia.pausa':'Pausa', 'dia.seguir':'Seguir', 'dia.empezarDebate':'Empezar debate', 'dia.reiniciarReloj':'Reiniciar',
+  'dia.idiotaSufijo':' ya no vota: el pueblo sabe que es el Idiota.',
+  'dia.dobleListo':'Voto del Alguacil listo: toca a quién vota', 'dia.dobleEmitir':'Emitir el voto del Alguacil (vale doble)',
+  'dia.tocaNombre':'Toca un nombre por cada voto que reciba. ', 'dia.vecinosVotado':' vecinos han votado.',
+  'dia.cerrarVotacion':'Cerrar votación', 'dia.borrarVotos':'Borrar votos', 'dia.nadieLinchado':'Nadie es linchado',
+  'dia.verPueblo':'Ver el pueblo',
+  'empate.titulo':'Empate', 'empate.voto':'voto', 'empate.cadaUno':'cada uno',
+  'empate.chivoTexto':'El Chivo Expiatorio paga los platos rotos.', 'empate.muerePrefijo':'Muere ',
+  'empate.repetir':'Repetir la votación',
+  'idiota.esElIdiota':' es el Idiota',
+  'idiota.texto':'El pueblo se ríe y le perdona la vida, pero pierde el derecho a votar.',
+  'sirvienta.antes':'Antes de revelar, la Abnegada Sirvienta puede robar el rol de alguien.',
+  'sirvienta.noRoba':'No roba nada', 'sirvienta.secreto':'Su rol pasó en secreto a la Abnegada Sirvienta.',
+  'revelar.ancianoAviso':'Han linchado al Anciano: a partir de ahora todos los aldeanos pierden sus poderes.',
+  'juez.boton':'El Juez hace su señal: otra votación',
+  'estado.titulo':'El pueblo', 'estado.infectado':' · infectado', 'estado.muerto':' · muerto',
+  'estado.vacio':'Aún no ha pasado nada.',
+  'fin.otraPartida':'Otra partida con los mismos', 'fin.empezarCero':'Empezar de cero',
+  'comun.continuar':'Continuar', 'comun.listo':'Listo', 'comun.yaLoHaVisto':'Ya lo ha visto',
+  'comun.queCaigaLaNoche':'Que caiga la noche', 'comun.atras':'Atrás', 'comun.menu':'‹ Menú',
+  'bando.aldea':'aldea', 'bando.lobos':'lobos', 'bando.solo':'solo',
+  'confirm.reiniciar':'¿Reiniciar y volver al menú? Se perderá la partida en curso.'
+ },
+ en:{
+  'inicio.subtitulo':'One phone. An invisible narrator.<br>The village sleeps, someone does not.',
+  'inicio.empezar':'Start game', 'inicio.comoJuega':'How to play',
+  'inicio.instalarTitulo':'📲 Install the app', 'inicio.instalarBtn':'Install on this device',
+  'inicio.instalarIOS':'On iPhone/iPad: tap <strong>Share</strong> (the □↑ icon) then <strong>Add to Home Screen</strong>.',
+  'inicio.instalarOtros':'Open the browser menu (⋮) and pick <strong>Install app</strong> or <strong>Add to Home Screen</strong>.',
+  'reglas.titulo':'How to play',
+  'reglas.p1':'Pass this phone around the circle. Everyone sees their role in secret and passes it to the next player.',
+  'reglas.p2':'Then the phone stays with whoever narrates: the app tells them what to say each night and who to wake.',
+  'reglas.p3':'At night the wolves devour. By day the village debates and votes. It ends when no wolf is left, or when wolves equal the rest in number.',
+  'reglas.nocheTitulo':'The night, step by step',
+  'reglas.nocheTexto':'The narrator calls each role in order, always with the same tone, pausing even when that role is not in play — silence gives it away. Nobody speaks at night; everything is done with gestures.',
+  'reglas.alguacilTitulo':'The Sheriff',
+  'reglas.alguacilTexto':'Not a card. The village elects them by vote on the first day: their vote counts double and, on death, they name a successor before their role is revealed.',
+  'reglas.rolesTitulo':'What each role does', 'reglas.rolesHint':'Tap a role to see its full instructions.',
+  'reglas.volver':'Back to start',
+  'jugadores.titulo':'Who is playing?', 'jugadores.placeholder':'Name', 'jugadores.anadir':'Add to the village',
+  'jugadores.duplicado':'That name is already on the list.',
+  'jugadores.hint':'Add them in the order you are sitting: the Fox and the Bear Tamer check their neighbours.',
+  'jugadores.quitar':'remove', 'jugadores.minimo':'You need at least 4 villagers.', 'jugadores.elegirRoles':'Choose the roles',
+  'roles.titulo':'Roles', 'roles.mazoHint':'Pick a ready-made deck and tweak it if you like.',
+  'roles.necesitas':'You need', 'roles.cartas':'cards', 'roles.ladronExtra':'(2 extra for the Thief)',
+  'roles.faltan':'missing', 'roles.sobran':'extra',
+  'roles.enMazo':'In the deck', 'roles.alguacilTitulo':'The Sheriff',
+  'roles.alguacilDesc':'Elected on day 1 by vote; their vote counts double and they name a successor when they die.',
+  'roles.activado':'On', 'roles.desactivado':'Off',
+  'roles.repartir':'Deal the cards',
+  'reparto.pasa':'Pass the phone to', 'reparto.noMires':'Make sure no one else looks at the screen.',
+  'reparto.soyPrefijo':'I am ', 'reparto.soySufijo':', show my card',
+  'verRol.eres':', you are', 'verRol.tuGente':'Your people: ', 'verRol.tuManada':'Your pack: ',
+  'verRol.solitario':'You hunt alone.', 'verRol.ocultar':'Hide and pass the phone',
+  'listos.titulo':'Everyone has a card',
+  'listos.texto':'Now the phone stays with the narrator. They will read out loud whatever appears on screen.',
+  'noche.label':'Night', 'dia.label':'Day',
+  'noche.ladron.t':'The Thief', 'noche.ladron.g':'«Thief, wake up. These are the two leftover cards.»',
+  'noche.ladron.hint':'If both are Werewolf, they must take one.', 'noche.ladron.btn':'Stays as is',
+  'noche.cupido.t':'Cupid', 'noche.cupido.g':'«Cupid, wake up and choose the two lovers.»',
+  'noche.amantes.t':'The lovers', 'noche.amantes.g':'«Lovers, open your eyes and look at each other. If one dies, the other dies of grief.»',
+  'noche.amantes.btn':'They have seen each other',
+  'noche.hermana.t':'The two sisters', 'noche.hermana.g':'«Sisters, open your eyes and recognise each other.»',
+  'noche.hermano.t':'The three brothers', 'noche.hermano.g':'«Brothers, open your eyes and recognise each other.»',
+  'noche.perrolobo.t':'The Wolf-Dog', 'noche.perrolobo.g':'«Wolf-Dog, decide: villager or wolf?»',
+  'noche.perrolobo.si':'Joins the wolves', 'noche.perrolobo.no':'Stays a villager',
+  'noche.salvaje.t':'Wild Child', 'noche.salvaje.g':'«Wild Child, wake up and choose your mentor.»',
+  'noche.sectario.t':'The Cultist',
+  'noche.sectario.g1':'«Narrator, split the villagers into two groups. Then show them to the Cultist.»',
+  'noche.sectario.grupoA':'Group A', 'noche.sectario.grupoB':'Group B', 'noche.sectario.sinGrupo':'No group',
+  'noche.sectario.mostrar':'Show the groups to the Cultist',
+  'noche.sectario.g2':'«Cultist, here are the two groups. You win if one dies out completely, whichever side it is.»',
+  'noche.sectario.vistos':'They have seen them',
+  'noche.gitana.t':'The Fortune Teller', 'noche.gitana.g':'«Fortune Teller, ask your question to the dead. The spirit answers yes or no.»',
+  'noche.gitana.vacio':'There are no spirits to talk to yet.', 'noche.gitana.btn':'They have asked',
+  'noche.comediante.t':'The Actor',
+  'noche.comediante.g':'«Actor, choose which of the three cards on the table you will play tonight.»',
+  'noche.comediante.noActua':'Not acting tonight',
+  'noche.comediante.gVacio':'«Actor, there are no free cards left this game.»', 'noche.comediante.vale':'OK',
+  'noche.vidente.t':'The Seer', 'noche.vidente.g':'«Seer, wake up and point to who you want to uncover.»',
+  'noche.salvador.t':'The Guardian', 'noche.salvador.g':'«Guardian, wake up. Who do you protect tonight?»',
+  'noche.salvador.anochePrefijo':'Last night they protected ', 'noche.salvador.anocheSufijo':": they cannot repeat today.",
+  'noche.zorro.t':'The Fox', 'noche.zorro.g':'«Fox, wake up and sniff out a villager and their two neighbours.»',
+  'noche.lobos.t':'The werewolves', 'noche.lobos.g':'«Wolves, open your eyes. Choose your victim.»',
+  'noche.nina.t':'Little Girl',
+  'noche.nina.g':'«While the wolves were choosing, the Little Girl peeked to spy on them. Did they catch her?»',
+  'noche.nina.si':'Yes, they catch her spying', 'noche.nina.no':'No, they do not notice',
+  'noche.feroz.t':'The Fierce Wolf', 'noche.feroz.g':'«Fierce Wolf, none of yours has fallen yet: choose a second victim.»',
+  'noche.feroz.btn':'Settles for one',
+  'noche.albino.t':'The Albino Wolf', 'noche.albino.g':'«Albino Wolf, tonight you may devour one of your own.»',
+  'noche.albino.btn':'Not tonight',
+  'noche.infecto.t':'Infected Father of Wolves', 'noche.infecto.g':'«Father of Wolves: do you infect the victim instead of devouring them?»',
+  'noche.infecto.victimaPrefijo':"Tonight's victim: ", 'noche.infecto.victimaSufijo':' Only once per game.',
+  'noche.infecto.si':'Infect them', 'noche.infecto.no':"No, let them die",
+  'noche.bruja.t':'The Witch', 'noche.bruja.g':"«Witch, wake up. This is tonight's victim.»",
+  'noche.bruja.muereEsta':'Dies tonight', 'noche.bruja.nadie':'nobody',
+  'noche.bruja.vida':'Use the life potion', 'noche.bruja.muerteHint':'Death potion: tap who you poison.',
+  'noche.bruja.noHaceNada':'Do nothing',
+  'noche.flautista.t':'The Piper', 'noche.flautista.g':'«Piper, wake up and charm two villagers with your tune.»',
+  'noche.flautista.encantados':'Charmed: ', 'noche.flautista.ninguno':'none',
+  'noche.encantados.t':'The charmed ones',
+  'noche.encantados.g':'«Charmed ones, open your eyes and recognise each other. Keep playing with your side.»',
+  'noche.encantados.nadie':'nobody yet',
+  'noche.guardia.t':'The Guard', 'noche.guardia.g':'«Guard, prepare the announcement the Sheriff gave you.»',
+  'ladronRoba.solo':'For the Thief only — you are now',
+  'videnteVe.solo':'Show the screen only to the Seer', 'videnteVe.infectado':' (infected)',
+  'zorro.solo':'For the Fox only — ', 'zorro.hueleLobo':'Smells wolf', 'zorro.niRastro':'No trace',
+  'zorro.conserva':'Keeps their nose for one more night.', 'zorro.pierde':'Loses their power for the rest of the game.',
+  'amanece.titulo':'Dawn breaks', 'amanece.nadieMurio':'Nobody died', 'amanece.suerte':'Someone slept lucky.',
+  'amanece.gruñe':"<strong>Grrrr.</strong> The Bear Tamer's bear growls: there is a wolf sitting right next to them.",
+  'comun.era':'was',
+  'causa.lobos':'devoured by the wolves', 'causa.espada':'killed by the rusty sword',
+  'causa.albino':'devoured by the Albino Wolf', 'causa.bruja':'poisoned by the Witch',
+  'causa.pueblo':'lynched by the village', 'causa.empate':'sacrificed on the tie',
+  'causa.cazador':'shot by the Hunter', 'causa.amor':'died of grief for their love',
+  'cazador.titulo':"The Hunter's shot", 'cazador.guionResto':' falls, but raises their weapon. Who do they take with them?',
+  'sucesor.texto':'The Sheriff has died. Before revealing their card, name their successor.',
+  'sucesor.ninguno':'No successor',
+  'eleccion.titulo':'Sheriff election',
+  'eleccion.guion':"«The village elects its Sheriff. Their vote will count double for the rest of the game.»",
+  'eleccion.votos':'votes.', 'eleccion.cerrar':'Close election',
+  'dia.titulo':'The village debates', 'dia.vivos':'alive',
+  'dia.guionNormal':'«Talk. When you are ready, vote who to lynch.»',
+  'dia.guionSinDebate':'«Second vote by the Judge\'s order, no debate. Vote directly.»',
+  'dia.pausa':'Pause', 'dia.seguir':'Resume', 'dia.empezarDebate':'Start debate', 'dia.reiniciarReloj':'Restart',
+  'dia.idiotaSufijo':" no longer votes: the village knows they're the Fool.",
+  'dia.dobleListo':"Sheriff's vote ready: tap who they vote for", 'dia.dobleEmitir':"Cast the Sheriff's vote (counts double)",
+  'dia.tocaNombre':'Tap a name for each vote it gets. ', 'dia.vecinosVotado':' villagers have voted.',
+  'dia.cerrarVotacion':'Close vote', 'dia.borrarVotos':'Clear votes', 'dia.nadieLinchado':'Nobody is lynched',
+  'dia.verPueblo':'View the village',
+  'empate.titulo':'Tie', 'empate.voto':'vote', 'empate.cadaUno':'each',
+  'empate.chivoTexto':'The Scapegoat takes the fall.', 'empate.muerePrefijo':'Dies: ',
+  'empate.repetir':'Revote',
+  'idiota.esElIdiota':' is the Fool',
+  'idiota.texto':'The village laughs and spares their life, but they lose the right to vote.',
+  'sirvienta.antes':"Before revealing, the Devoted Servant may steal someone's role.",
+  'sirvienta.noRoba':'Steals nothing', 'sirvienta.secreto':'Their role secretly passed to the Devoted Servant.',
+  'revelar.ancianoAviso':'The Elder has been lynched: from now on all villagers lose their powers.',
+  'juez.boton':"The Judge gives the signal: another vote",
+  'estado.titulo':'The village', 'estado.infectado':' · infected', 'estado.muerto':' · dead',
+  'estado.vacio':'Nothing has happened yet.',
+  'fin.otraPartida':'Another game, same players', 'fin.empezarCero':'Start from scratch',
+  'comun.continuar':'Continue', 'comun.listo':'Ready', 'comun.yaLoHaVisto':"They've seen it",
+  'comun.queCaigaLaNoche':'Let night fall', 'comun.atras':'Back', 'comun.menu':'‹ Menu',
+  'bando.aldea':'village', 'bando.lobos':'wolves', 'bando.solo':'solo',
+  'confirm.reiniciar':'Restart and go back to the menu? The current game will be lost.'
+ }
+};
+const t = k => (T[idioma]&&T[idioma][k]!==undefined ? T[idioma][k] : (T.es[k]!==undefined?T.es[k]:k));
+const textoBando = b => t('bando.'+b);
+const causaTexto = k => t('causa.'+k);
+
 /* ============ ROLES ============
-   b: bando · p: procedencia · max: copias · a: automático en la app */
-const ROLES = {
- /* --- Juego base --- */
+   b: bando · p: procedencia · max: copias */
+const ROLES_ES = {
  aldeano:{n:'Aldeano',b:'aldea',p:'base',max:16,d:'Sin poderes. Solo su voto y su instinto.'},
  lobo:{n:'Hombre Lobo',b:'lobos',p:'base',max:6,d:'Cada noche devora a un aldeano junto a la manada.'},
  vidente:{n:'Vidente',b:'aldea',p:'base',max:1,d:'Cada noche descubre el rol de un jugador.'},
@@ -91,7 +347,6 @@ const ROLES = {
  nina:{n:'Niña Pequeña',b:'aldea',p:'base',max:1,d:'Puede espiar a los lobos entreabriendo los ojos. Si la pillan, muere.'},
  cupido:{n:'Cupido',b:'aldea',p:'base',max:1,d:'La primera noche enamora a dos jugadores. Si uno muere, el otro también.'},
  ladron:{n:'Ladrón',b:'aldea',p:'base',max:1,d:'La primera noche mira dos cartas sobrantes y puede quedarse una. Añade 2 cartas al mazo.'},
- /* --- Expansión 2 --- */
  anciano:{n:'Anciano',b:'aldea',p:'pacto',max:1,d:'Aguanta el primer mordisco de los lobos. Si el pueblo lo lincha, los demás pierden sus poderes.'},
  chivo:{n:'Chivo Expiatorio',b:'aldea',p:'pacto',max:1,d:'Si la votación acaba en empate, muere él.'},
  idiota:{n:'Idiota del Pueblo',b:'aldea',p:'pacto',max:1,d:'Si lo linchan, se revela y sobrevive, pero pierde el voto para siempre.'},
@@ -101,7 +356,6 @@ const ROLES = {
  angel:{n:'Ángel',b:'aldea',p:'pacto',max:1,d:'Gana al instante si muere en la primera ronda. Si sobrevive, sigue como aldeano.'},
  gitana:{n:'Gitana',b:'aldea',p:'pacto',max:1,d:'Cada noche hace una pregunta a un muerto, que responde sí o no.'},
  guardia:{n:'Guardia',b:'aldea',p:'pacto',max:1,d:'El Alguacil le encarga anuncios públicos que el pueblo debe escuchar en silencio.'},
- /* --- Expansión 1 --- */
  aldeanoAldeano:{n:'Aldeano-Aldeano',b:'aldea',p:'personajes',max:1,d:'Todos saben que es aldeano de verdad. Su palabra vale oro.'},
  hermana:{n:'Las Dos Hermanas',b:'aldea',p:'personajes',max:2,d:'Se reconocen la primera noche y pueden hablar entre ellas.'},
  hermano:{n:'Los Tres Hermanos',b:'aldea',p:'personajes',max:3,d:'Igual que las hermanas, pero son tres.'},
@@ -117,11 +371,48 @@ const ROLES = {
  feroz:{n:'Lobo Feroz',b:'lobos',p:'personajes',max:1,d:'Mientras no haya muerto ningún lobo, devora a una segunda víctima cada noche.'},
  infecto:{n:'Infecto Padre de los Lobos',b:'lobos',p:'personajes',max:1,d:'Una vez por partida infecta a la víctima en vez de devorarla.'}
 };
-const PACKS = {base:'Juego base', personajes:'Expansión 1', pacto:'Expansión 2'};
+const ROLES_EN = {
+ aldeano:{n:'Villager',b:'aldea',p:'base',max:16,d:'No powers. Just their vote and their instinct.'},
+ lobo:{n:'Werewolf',b:'lobos',p:'base',max:6,d:'Devours a villager with the pack every night.'},
+ vidente:{n:'Seer',b:'aldea',p:'base',max:1,d:"Uncovers a player's role every night."},
+ bruja:{n:'Witch',b:'aldea',p:'base',max:1,d:'One life potion and one death potion, each used only once.'},
+ cazador:{n:'Hunter',b:'aldea',p:'base',max:1,d:'Takes another player down with them when they die.'},
+ nina:{n:'Little Girl',b:'aldea',p:'base',max:1,d:'Can spy on the wolves by peeking. If caught, she dies.'},
+ cupido:{n:'Cupid',b:'aldea',p:'base',max:1,d:'On the first night makes two players fall in love. If one dies, so does the other.'},
+ ladron:{n:'Thief',b:'aldea',p:'base',max:1,d:'On the first night looks at two spare cards and may keep one. Adds 2 cards to the deck.'},
+ anciano:{n:'Elder',b:'aldea',p:'pacto',max:1,d:"Survives the wolves' first bite. If the village lynches them, everyone else loses their powers."},
+ chivo:{n:'Scapegoat',b:'aldea',p:'pacto',max:1,d:'If the vote ends in a tie, they die instead.'},
+ idiota:{n:'Village Fool',b:'aldea',p:'pacto',max:1,d:'If lynched, reveals their card and survives, but loses the vote forever.'},
+ salvador:{n:'Guardian',b:'aldea',p:'pacto',max:1,d:"Protects someone from the attack each night. Can't repeat the same person two nights running."},
+ perrolobo:{n:'Wolf-Dog',b:'aldea',p:'pacto',max:1,d:'On the first night decides whether to be villager or wolf.'},
+ flautista:{n:'Piper',b:'solo',p:'pacto',max:1,d:'Charms two players every night. Wins if everyone alive is charmed.'},
+ angel:{n:'Angel',b:'aldea',p:'pacto',max:1,d:'Wins instantly if they die in the first round. If they survive, they stay a plain villager.'},
+ gitana:{n:'Fortune Teller',b:'aldea',p:'pacto',max:1,d:'Asks a dead player a question every night; they answer yes or no.'},
+ guardia:{n:'Guard',b:'aldea',p:'pacto',max:1,d:'The Sheriff gives them public announcements the village must hear in silence.'},
+ aldeanoAldeano:{n:'True Villager',b:'aldea',p:'personajes',max:1,d:"Everyone knows they're really a villager. Their word is gold."},
+ hermana:{n:'The Two Sisters',b:'aldea',p:'personajes',max:2,d:'Recognise each other the first night and can talk to each other.'},
+ hermano:{n:'The Three Brothers',b:'aldea',p:'personajes',max:3,d:'Like the sisters, but three of them.'},
+ zorro:{n:'Fox',b:'aldea',p:'personajes',max:1,d:"Sniffs out a neighbour and the two beside them. If there's no wolf, loses their sense of smell."},
+ caballero:{n:'Knight of the Rusty Sword',b:'aldea',p:'personajes',max:1,d:'If devoured, a wolf dies the following night from the rust.'},
+ juez:{n:'Stuttering Judge',b:'aldea',p:'personajes',max:1,d:'Once per game triggers a second vote with no debate.'},
+ sirvienta:{n:'Devoted Servant',b:'aldea',p:'personajes',max:1,d:'Before a dead player is revealed, may steal their role and carry on with it.'},
+ comediante:{n:'Actor',b:'aldea',p:'personajes',max:1,d:"The app deals them 3 cards of roles not in play. Each night they use one of the three's power."},
+ sectario:{n:'Abominable Cultist',b:'solo',p:'personajes',max:1,d:'The village splits into two groups. Wins alone if the opposing group dies out completely.'},
+ domador:{n:'Bear Tamer',b:'aldea',p:'personajes',max:1,d:'Their bear growls at dawn if a wolf is sitting next to them.'},
+ salvaje:{n:'Wild Child',b:'aldea',p:'personajes',max:1,d:'Picks a mentor. If the mentor dies, they turn into a wolf.'},
+ albino:{n:'Albino Werewolf',b:'lobos',p:'personajes',max:1,d:'Hunts with the pack, but devours a wolf every other night. Wins alone.'},
+ feroz:{n:'Fierce Wolf',b:'lobos',p:'personajes',max:1,d:'While no wolf has died, devours a second victim every night.'},
+ infecto:{n:'Infected Father of Wolves',b:'lobos',p:'personajes',max:1,d:'Once per game infects the victim instead of devouring them.'}
+};
+let ROLES = idioma==='en'?ROLES_EN:ROLES_ES;
+
+const PACKS_ES = {base:'Juego base', personajes:'Expansión 1', pacto:'Expansión 2'};
+const PACKS_EN = {base:'Base game', personajes:'Expansion 1', pacto:'Expansion 2'};
+let PACKS = idioma==='en'?PACKS_EN:PACKS_ES;
 
 /* ============ MAZOS PREDEFINIDOS ============ */
 const nLobos = n => n<8?1:n<12?2:n<16?3:4;
-const MAZOS = {
+const MAZOS_ES = {
  clasico:{n:'Clásico',d:'El de toda la vida. Fácil de narrar y de explicar a quien no ha jugado nunca.',
   f:n=>{const s={lobo:nLobos(n),vidente:1,bruja:1,cazador:1};if(n>=8)s.cupido=1;if(n>=10)s.nina=1;return s;}},
  rapido:{n:'Partida rápida',d:'Casi todo aldeanos. Puro debate, sin poderes que alarguen la noche.',
@@ -139,6 +430,26 @@ const MAZOS = {
   f:n=>{const s={lobo:nLobos(n),vidente:1,cupido:1,flautista:1,angel:1};
    if(n>=10)s.perrolobo=1; if(n>=12)s.idiota=1; if(n>=13)s.ladron=1; return s;}}
 };
+const MAZOS_EN = {
+ clasico:{n:'Classic',d:"The good old one. Easy to narrate and explain to first-time players.",
+  f:n=>{const s={lobo:nLobos(n),vidente:1,bruja:1,cazador:1};if(n>=8)s.cupido=1;if(n>=10)s.nina=1;return s;}},
+ rapido:{n:'Quick game',d:'Almost all villagers. Pure debate, no powers to drag the night out.',
+  f:n=>{const s={lobo:nLobos(n),vidente:1};if(n>=10)s.cazador=1;return s;}},
+ caos:{n:'Chaos in the village',d:'Almost nobody is a plain villager. Long, very noisy nights.',
+  f:n=>{const s={lobo:nLobos(n),vidente:1,bruja:1,cazador:1,salvador:1,zorro:1};
+   let hueco=n-Object.values(s).reduce((a,b)=>a+b,0);
+   ['caballero','salvaje','juez','anciano','domador','aldeanoAldeano','nina','idiota'].forEach(k=>{if(hueco>0){s[k]=1;hueco--;}});
+   if(hueco>=2){s.hermana=2;hueco-=2;}
+   return s;}},
+ manada:{n:'Night of the pack',d:'Wolves with teeth: fierce, infected and albino. The village is in for a rough time.',
+  f:n=>{const s={lobo:Math.max(1,nLobos(n)-1),feroz:1,vidente:1,bruja:1,cazador:1,salvador:1,anciano:1};
+   if(n>=12)s.infecto=1; if(n>=14)s.albino=1; return s;}},
+ traiciones:{n:'Betrayals and flutes',d:'Three different ways to win solo. Nobody trusts anybody.',
+  f:n=>{const s={lobo:nLobos(n),vidente:1,cupido:1,flautista:1,angel:1};
+   if(n>=10)s.perrolobo=1; if(n>=12)s.idiota=1; if(n>=13)s.ladron=1; return s;}}
+};
+let MAZOS = idioma==='en'?MAZOS_EN:MAZOS_ES;
+
 function aplicarMazo(k){
  const n=S.jugadores.length, s=MAZOS[k].f(n);
  Object.keys(s).forEach(r=>{ if(s[r]>ROLES[r].max) s[r]=ROLES[r].max; });
@@ -154,7 +465,7 @@ function aplicarMazo(k){
 }
 
 function reiniciar(){
- if(S.jugadores.length && !confirm('¿Reiniciar y volver al menú? Se perderá la partida en curso.')) return;
+ if(S.jugadores.length && !confirm(t('confirm.reiniciar'))) return;
  S=nuevo(); pInicio();
 }
 
@@ -169,17 +480,17 @@ setInterval(()=>{
  e.textContent=fmt(S.tempo.left);
  e.style.color=S.tempo.left<=15?'var(--brasa)':'';
  const b=document.getElementById('relojBtn');
- if(b) b.textContent=S.tempo.run?'Pausa':(S.tempo.left?'Seguir':'Reiniciar');
+ if(b) b.textContent=S.tempo.run?t('dia.pausa'):(S.tempo.left?t('dia.seguir'):t('dia.reiniciarReloj'));
 },1000);
 function reloj(){
  if(S.tempo.left<=0){ S.tempo.left=DEBATE; S.tempo.run=true; }
  else S.tempo.run=!S.tempo.run;
  const b=document.getElementById('relojBtn');
- if(b) b.textContent=S.tempo.run?'Pausa':'Seguir';
+ if(b) b.textContent=S.tempo.run?t('dia.pausa'):t('dia.seguir');
 }
 
 /* ============ INSTRUCCIONES DETALLADAS ============ */
-const GUIA = {
+const GUIA_ES = {
  aldeano:'No despierta ninguna noche. Su única arma es el debate: escuchar, atar cabos y convencer al pueblo en la votación del día.',
  lobo:'Cada noche, cuando el narrador llame a los lobos, abre los ojos con el resto de la manada y señalan en silencio a una víctima. Deben ponerse de acuerdo sin hablar. De día fingen ser aldeanos y votan con los demás.',
  vidente:'Cada noche señala a un jugador y el narrador le enseña su carta sin decir palabra. Sabe más que nadie, pero si lo cuenta demasiado pronto los lobos irán a por ella la noche siguiente.',
@@ -212,40 +523,48 @@ const GUIA = {
  feroz:'Después de la víctima de la manada, elige una segunda víctima él solo. Pierde este poder en cuanto muera cualquier lobo, incluido él si lo protegen.',
  infecto:'Una sola vez en toda la partida, en lugar de matar a la víctima de esa noche, la infecta: sigue viva y con su carta y sus poderes, pero pasa al bando de los lobos y despierta con ellos.'
 };
+const GUIA_EN = {
+ aldeano:"Never wakes up at night. Their only weapon is debate: listening, connecting the dots and convincing the village at the day's vote.",
+ lobo:'Every night, when the narrator calls the wolves, they open their eyes with the rest of the pack and silently point to a victim. They must agree without speaking. By day they pretend to be villagers and vote with everyone else.',
+ vidente:"Every night points to a player, and the narrator shows them that player's card without a word. They know more than anyone, but if they reveal it too soon the wolves will come for them the following night.",
+ bruja:"The narrator shows them who dies that night. They may spend the life potion to save that person (even themselves) and the death potion to eliminate anyone they choose. Each potion is used only once in the whole game.",
+ cazador:'Does nothing at night. The moment they die — devoured, poisoned or lynched — they point to another player and take them down immediately.',
+ nina:"While the wolves act, she may peek to try to identify them. If a wolf catches her spying, they tell the narrator and she dies that night instead of the chosen victim.",
+ cupido:'Only acts the first night: points to two players (may pick themselves) and they fall in love. If one dies, the other dies of grief instantly. If they are on different sides, they only win by being the last two alive.',
+ ladron:"Two extra cards are added to the deck. On the first night the narrator shows them those two cards: they may keep one and leave theirs, or not change. If both are Werewolf, they must take one.",
+ anciano:"Survives the wolves' first attack without dying (nothing is announced that morning) and dies on the second. If the village lynches them by mistake, every villager with a power loses it from then on.",
+ chivo:'Has no power of their own. If a vote ends in a tie, they die instead of repeating it. Dying this way, they decide who can vote the next day.',
+ idiota:'If the village lynches them, they reveal their card and are spared. In exchange they lose the right to vote for the rest of the game. Does not protect them from the wolves or the witch.',
+ salvador:"Every night points to a player and protects them from the wolves' attack. May protect themselves, but can't repeat the same person two nights running. Doesn't protect from the witch's poison.",
+ perrolobo:'On the first night the narrator silently asks whether they want to be villager or wolf, and they answer with a gesture. If they choose wolf, they wake with the pack for the rest of the game.',
+ flautista:"Charms two players every night. The charmed keep playing for their normal side, but if by the end of the day everyone alive is charmed, the Piper wins alone, above wolves and villagers.",
+ angel:'If they die in the first round (the first vote or the first night), they win the game instantly, alone. If they survive that round, they lose the power and become a regular villager.',
+ gitana:'Every night asks the dead a question out loud. The narrator picks an eliminated player, who answers only yes or no by nodding. Questions must be answerable that way.',
+ guardia:"The Sheriff gives them announcements to read to the village. While they speak nobody may interrupt, so their words shape the day's debate.",
+ aldeanoAldeano:"Reveals their card at the start of the game: everyone knows for certain they're a villager. The only one whose word nobody can doubt, so they usually lead the debate and are often the wolves' first target.",
+ hermana:'The two recognise each other the first night. Every night they may wake for a few seconds to exchange information with gestures, so they play knowing the other is trustworthy.',
+ hermano:'Same as the sisters, but three of them. They recognise each other the first night and form a block very hard for the wolves to break.',
+ zorro:"Every night points to a player: the narrator checks that player and their two seat-neighbours. If there's at least one wolf among the three, the narrator nods and they keep the power. If there's none, the narrator shakes their head and the Fox loses their sense of smell forever.",
+ caballero:'Does nothing while alive. If the wolves devour them, the rust on their sword infects the first wolf seated to their left, who dies the following night unable to hunt.',
+ juez:'At the start of the game agrees a secret signal with the narrator. When they make it during the day, an immediate second vote happens with no debate in between. Only once per game.',
+ sirvienta:"Just before an eliminated player's card is revealed, may show their own and take over the dead player's role, starting fresh with that power. Nobody gets to see the eliminated player's card.",
+ comediante:'The first night it is their turn, the app randomly picks 3 simple roles not in the game (among Seer, Guardian, Fox, Fortune Teller, Witch and Guard), fixed for the rest of the game. Every night they choose one of the three and act with its real power; they may repeat the same card on different nights.',
+ sectario:'At the start, the narrator splits the village into two groups and shows them which is which. The Cultist wins alone if they manage to wipe out an entire group, no matter whether it is wolves or villagers.',
+ domador:'Has no active power. Every morning, if a wolf is sitting next to them (counting only living players), the narrator growls out loud before the debate starts.',
+ salvaje:'On the first night points to a player as their mentor. While the mentor lives, they play as a villager. The moment the mentor dies, they turn into a Werewolf and wake with the pack.',
+ albino:"Wakes with the pack every night, but also, every other night, the narrator wakes them alone to devour a wolf. Their goal is to end up as the sole survivor of El Villar.",
+ feroz:'After the pack\'s victim, picks a second victim alone. Loses this power the moment any wolf dies, even themselves if protected.',
+ infecto:'Once in the whole game, instead of killing that night\'s victim, infects them: they stay alive with their card and powers, but switch to the wolves\' side and wake with them.'
+};
+let GUIA = idioma==='en'?GUIA_EN:GUIA_ES;
 
 /* ============ EMOJIS ============ */
 const I = {
- lobo:'🐺',
- aldeano:'🧑‍🌾',
- vidente:'👁️',
- bruja:'🧪',
- cazador:'🔫',
- nina:'👧',
- cupido:'💘',
- ladron:'💰',
- anciano:'⏳',
- chivo:'🐐',
- idiota:'🤡',
- salvador:'🛡️',
- perrolobo:'🐕',
- flautista:'🎶',
- angel:'👼',
- gitana:'🔮',
- guardia:'📯',
- aldeanoAldeano:'🤝',
- hermana:'👭',
- hermano:'👬',
- zorro:'🦊',
- caballero:'⚔️',
- juez:'⚖️',
- sirvienta:'🧹',
- comediante:'🎭',
- sectario:'🕯️',
- domador:'🐻',
- salvaje:'🐾',
- albino:'🌕',
- feroz:'🩸',
- infecto:'🦠'
+ lobo:'🐺', aldeano:'🧑‍🌾', vidente:'👁️', bruja:'🧪', cazador:'🔫', nina:'👧', cupido:'💘', ladron:'💰',
+ anciano:'⏳', chivo:'🐐', idiota:'🤡', salvador:'🛡️', perrolobo:'🐕', flautista:'🎶', angel:'👼',
+ gitana:'🔮', guardia:'📯', aldeanoAldeano:'🤝', hermana:'👭', hermano:'👬', zorro:'🦊', caballero:'⚔️',
+ juez:'⚖️', sirvienta:'🧹', comediante:'🎭', sectario:'🕯️', domador:'🐻', salvaje:'🐾', albino:'🌕',
+ feroz:'🩸', infecto:'🦠'
 };
 function icono(k,s=22){
  const e=I[k]; if(!e) return '';
@@ -263,7 +582,7 @@ const nuevo = () => ({jugadores:[],seleccion:{},idx:0,noche:0,paso:0,pendientes:
  sectarioGrupos:null,sectarioListo:false,
  juezUsado:false,sinDebateHoy:false,
  alguacilActivo:true,alguacil:null,votosAlguacil:{},votosEmitidos:0,votoAlguacilUsado:false,usarVotoDoble:false,
- _sucesorCaidos:null,_sucesorSeguir:null,_sucesorExtra:null,_pantalla:'inicio'});
+ _sucesorCaidos:null,_sucesorSeguir:null,_sucesorExtra:null,_pantalla:'inicio',_finG:null});
 let S = nuevo();
 const GUARDADO='elLobo_partida';
 function guardar(){ try{ localStorage.setItem(GUARDADO,JSON.stringify(S)); }catch(e){} }
@@ -275,6 +594,28 @@ const bandoDe = j => j.convertido ? 'lobos' : ROLES[j.rol].b;
 const esLobo = j => bandoDe(j)==='lobos';
 const app = document.getElementById('app');
 const render = (h,enJuego=false) => { app.innerHTML = h; window.scrollTo(0,0); menuBtn.style.display = enJuego?'flex':'none'; guardar(); };
+const PANTALLAS = () => ({inicio:pInicio,jugadores:pJugadores,roles:pRoles,reparto:pReparto,listos:pListos,noche:pasoNoche,dia:pDia,eleccion:pEleccion,
+ reglas:pReglas,estado:pEstado,fin:()=>pFin(S._finG)});
+const esMovil = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+const SVG_ES = '<svg width="22" height="16" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="2" fill="#AA151B"/><rect y="0.5" width="3" height="1" fill="#F1BF00"/></svg>';
+const SVG_US = '<svg width="22" height="16" viewBox="0 0 19 10" xmlns="http://www.w3.org/2000/svg"><rect width="19" height="10" fill="#B22234"/><g fill="#fff"><rect y="0.77" width="19" height="0.77"/><rect y="2.31" width="19" height="0.77"/><rect y="3.85" width="19" height="0.77"/><rect y="5.38" width="19" height="0.77"/><rect y="6.92" width="19" height="0.77"/><rect y="8.46" width="19" height="0.77"/></g><rect width="7.6" height="5.38" fill="#3C3B6E"/></svg>';
+function actualizarLangBtn(){
+ langBtn.innerHTML = esMovil()
+  ? (idioma==='es'?'🇪🇸':'🇺🇸')
+  : (idioma==='es'?SVG_ES:SVG_US);
+}
+function toggleIdioma(){
+ idioma = idioma==='es'?'en':'es';
+ try{ localStorage.setItem('elLobo_idioma',idioma); }catch(e){}
+ ROLES = idioma==='en'?ROLES_EN:ROLES_ES;
+ GUIA = idioma==='en'?GUIA_EN:GUIA_ES;
+ PACKS = idioma==='en'?PACKS_EN:PACKS_ES;
+ MAZOS = idioma==='en'?MAZOS_EN:MAZOS_ES;
+ document.documentElement.lang = idioma;
+ actualizarLangBtn();
+ const ir=PANTALLAS()[S._pantalla];
+ if(ir) ir();
+}
 
 /* ============ INSTALAR PWA ============ */
 let deferredInstall=null;
@@ -298,61 +639,62 @@ function pInicio(){
  render(`<div class="fade centro">
   <img src="icon-512.png" alt="El Lobo" style="width:120px;height:120px;border-radius:24px;margin:10px auto;display:block">
   <h1>El Lobo</h1>
-  <p class="tenue">Un solo móvil. Un narrador invisible.<br>El pueblo duerme, alguien no.</p>
-  <button class="btn" onclick="pJugadores()">Empezar partida</button>
-  <button class="btn ghost" onclick="pReglas()">Cómo se juega</button>
+  <p class="tenue">${t('inicio.subtitulo')}</p>
+  <button class="btn" onclick="pJugadores()">${t('inicio.empezar')}</button>
+  <button class="btn ghost" onclick="pReglas()">${t('inicio.comoJuega')}</button>
   ${yaInstalada()?'':`<div class="card" style="text-align:left;margin-top:18px">
-   <p style="margin:0 0 8px"><strong>📲 Instalar la app</strong></p>
+   <p style="margin:0 0 8px"><strong>${t('inicio.instalarTitulo')}</strong></p>
    ${deferredInstall
-    ?`<button class="btn" onclick="instalarApp()">Instalar en este dispositivo</button>`
+    ?`<button class="btn" onclick="instalarApp()">${t('inicio.instalarBtn')}</button>`
     :esIOS()
-     ?`<p class="tenue" style="margin:0">En iPhone/iPad: toca <strong>Compartir</strong> (el icono □↑) y luego <strong>Añadir a pantalla de inicio</strong>.</p>`
-     :`<p class="tenue" style="margin:0">Abre el menú del navegador (⋮) y elige <strong>Instalar app</strong> o <strong>Añadir a pantalla de inicio</strong>.</p>`}
+     ?`<p class="tenue" style="margin:0">${t('inicio.instalarIOS')}</p>`
+     :`<p class="tenue" style="margin:0">${t('inicio.instalarOtros')}</p>`}
   </div>`}</div>`);
 }
 function pReglas(){
- render(`<header class="top"><h2>Cómo se juega</h2><button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pInicio()">Atrás</button></header>
+ S._pantalla='reglas';
+ render(`<header class="top"><h2>${t('reglas.titulo')}</h2><button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pInicio()">${t('comun.atras')}</button></header>
  <div class="card">
-  <p>Pasáis este móvil en círculo. Cada uno ve su rol en secreto y se lo pasa al siguiente.</p>
-  <p>Después el móvil se queda con quien haga de narrador: la app le dicta qué decir cada noche y a quién despertar.</p>
-  <p>De noche los lobos devoran. De día el pueblo debate y vota. Se acaba cuando no queda ningún lobo, o cuando los lobos igualan en número al resto.</p>
+  <p>${t('reglas.p1')}</p>
+  <p>${t('reglas.p2')}</p>
+  <p>${t('reglas.p3')}</p>
  </div>
- <h3>La noche, paso a paso</h3>
- <div class="card"><p class="tenue" style="margin:0">El narrador va llamando a cada rol por orden, siempre con el mismo tono y haciendo pausas aunque ese rol no exista en la partida: los silencios delatan. Nadie habla de noche; todo se hace con gestos.</p></div>
- <h3>El Alguacil</h3>
- <div class="card"><p class="tenue" style="margin:0">No es una carta. El pueblo lo elige por votación el primer día: su voto vale doble y, al morir, señala a su sucesor antes de revelar su rol.</p></div>
- <h3 style="margin-top:22px">Qué hace cada rol</h3>
- <p class="tenue">Toca un rol para ver sus instrucciones completas.</p>
- ${Object.entries(PACKS).map(([p,t])=>`
-  <h3 style="margin-top:18px;color:var(--luna-tenue);font-size:1rem;letter-spacing:.06em;text-transform:uppercase">${t}</h3>
+ <h3>${t('reglas.nocheTitulo')}</h3>
+ <div class="card"><p class="tenue" style="margin:0">${t('reglas.nocheTexto')}</p></div>
+ <h3>${t('reglas.alguacilTitulo')}</h3>
+ <div class="card"><p class="tenue" style="margin:0">${t('reglas.alguacilTexto')}</p></div>
+ <h3 style="margin-top:22px">${t('reglas.rolesTitulo')}</h3>
+ <p class="tenue">${t('reglas.rolesHint')}</p>
+ ${Object.entries(PACKS).map(([p,pt])=>`
+  <h3 style="margin-top:18px;color:var(--luna-tenue);font-size:1rem;letter-spacing:.06em;text-transform:uppercase">${pt}</h3>
   <div class="card" style="padding:4px 16px">
   ${Object.entries(ROLES).filter(([,r])=>r.p===p).map(([k,r])=>`
    <details class="rol-det">
     <summary>
      <span class="icono-rol" style="color:${colorBando(r.b)}">${icono(k,24)}</span>
-     <span style="flex:1"><strong>${r.n}</strong><span class="bando ${r.b}">${r.b==='solo'?'en solitario':r.b}</span></span>
+     <span style="flex:1"><strong>${r.n}</strong><span class="bando ${r.b}">${textoBando(r.b)}</span></span>
      <span class="flecha">›</span>
     </summary>
     <p>${GUIA[k]||r.d}</p>
    </details>`).join('')}
   </div>`).join('')}
- <button class="btn" onclick="pJugadores()">Empezar partida</button>
- <button class="btn ghost" onclick="pInicio()">Volver al inicio</button>`);
+ <button class="btn" onclick="pJugadores()">${t('inicio.empezar')}</button>
+ <button class="btn ghost" onclick="pInicio()">${t('reglas.volver')}</button>`);
 }
 /* ============ JUGADORES ============ */
 function pJugadores(){
  S._pantalla='jugadores';
  render(`<header class="top">
-  <button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pInicio()">‹ Menú</button>
-  <h2 style="margin:0;flex:1;text-align:center">¿Quién juega?</h2>
+  <button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pInicio()">${t('comun.menu')}</button>
+  <h2 style="margin:0;flex:1;text-align:center">${t('jugadores.titulo')}</h2>
   <span class="tenue" style="min-width:34px;text-align:right">${S.jugadores.length}</span></header>
- <div class="card"><input type="text" id="nom" placeholder="Nombre" autocomplete="off" enterkeyhint="done">
- <button class="btn" onclick="addJugador()">Añadir al pueblo</button></div>
- ${nombreDup?'<p class="tenue" style="color:var(--brasa)">Ese nombre ya está en la lista.</p>':''}
- <p class="tenue">Añádelos en el mismo orden en que estáis sentados: el Zorro y el Domador de Osos miran a sus vecinos.</p>
- <div class="rowlist">${S.jugadores.map((j,i)=>`<div class="chip"><span>${esc(j.nombre)}</span><button class="tenue" onclick="delJugador(${i})">quitar</button></div>`).join('')}</div>
- ${S.jugadores.length<4?'<p class="tenue centro">Hacen falta al menos 4 vecinos.</p>':''}
- <button class="btn oro" ${S.jugadores.length<4?'disabled':''} onclick="pRoles()">Elegir los roles</button>`);
+ <div class="card"><input type="text" id="nom" placeholder="${t('jugadores.placeholder')}" autocomplete="off" enterkeyhint="done">
+ <button class="btn" onclick="addJugador()">${t('jugadores.anadir')}</button></div>
+ ${nombreDup?`<p class="tenue" style="color:var(--brasa)">${t('jugadores.duplicado')}</p>`:''}
+ <p class="tenue">${t('jugadores.hint')}</p>
+ <div class="rowlist">${S.jugadores.map((j,i)=>`<div class="chip"><span>${esc(j.nombre)}</span><button class="tenue" onclick="delJugador(${i})">${t('jugadores.quitar')}</button></div>`).join('')}</div>
+ ${S.jugadores.length<4?`<p class="tenue centro">${t('jugadores.minimo')}</p>`:''}
+ <button class="btn oro" ${S.jugadores.length<4?'disabled':''} onclick="pRoles()">${t('jugadores.elegirRoles')}</button>`);
  const i=document.getElementById('nom'); i.focus();
  i.addEventListener('keydown',e=>{if(e.key==='Enter')addJugador();});
 }
@@ -376,33 +718,33 @@ function pRoles(){
   S.seleccion={lobo:n<8?1:(n<12?2:3),vidente:1,bruja:1,cazador:1};
   S.seleccion.aldeano=Math.max(0,n-totalSel());
  }
- const t=totalSel(), need=cartasNecesarias();
- render(`<header class="top"><h2>Roles</h2><span class="tenue">${t} / ${need}</span></header>
- <p class="tenue" style="margin-bottom:8px">Elige un mazo hecho y retócalo si quieres.</p>
+ const t2=totalSel(), need=cartasNecesarias();
+ render(`<header class="top"><h2>${t('roles.titulo')}</h2><span class="tenue">${t2} / ${need}</span></header>
+ <p class="tenue" style="margin-bottom:8px">${t('roles.mazoHint')}</p>
  <div class="rowlist" style="margin-bottom:16px">${Object.entries(MAZOS).map(([k,m])=>`
   <button class="mazo ${S.mazoElegido===k?'on':''}" onclick="aplicarMazo('${k}')">
    <strong>${m.n}</strong><small>${m.d}</small></button>`).join('')}</div>
  <div class="pestanas">${Object.entries(PACKS).map(([p,l])=>`<button class="${S.packTab===p?'on':''}" onclick="S.packTab='${p}';pRoles()">${l}</button>`).join('')}</div>
- ${t!==need?`<div class="aviso">Necesitas ${need} cartas${S.seleccion.ladron?' (2 extra para el Ladrón)':''}: ${t<need?`faltan ${need-t}`:`sobran ${t-need}`}.</div>`:''}
+ ${t2!==need?`<div class="aviso">${t('roles.necesitas')} ${need} ${t('roles.cartas')}${S.seleccion.ladron?' '+t('roles.ladronExtra'):''}: ${t2<need?`${t('roles.faltan')} ${need-t2}`:`${t('roles.sobran')} ${t2-need}`}.</div>`:''}
  <div class="card">${Object.entries(ROLES).filter(([,r])=>r.p===S.packTab).map(([k,r])=>`
   <div class="rol-fila">
    <span class="icono-rol" style="color:${colorBando(r.b)}">${icono(k,26)}</span>
-   <div style="flex:1"><strong>${r.n}</strong><span class="bando ${r.b}">${r.b==='solo'?'solo':r.b}</span><small>${r.d}</small></div>
+   <div style="flex:1"><strong>${r.n}</strong><span class="bando ${r.b}">${textoBando(r.b)}</span><small>${r.d}</small></div>
    <div class="contador"><button onclick="setRol('${k}',-1)">−</button><span style="min-width:14px;text-align:center">${S.seleccion[k]||0}</span><button onclick="setRol('${k}',1)">+</button></div>
   </div>`).join('')}</div>
  ${resumenSeleccion()}
  <div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-  <div><strong>El Alguacil</strong><br><small class="tenue">Se elige el día 1 por votación; su voto vale doble y nombra sucesor al morir.</small></div>
-  <button class="btn ${S.alguacilActivo?'oro':'ghost'}" style="width:auto;margin:0;padding:8px 14px;flex:none" onclick="toggleAlguacil()">${S.alguacilActivo?'Activado':'Desactivado'}</button>
+  <div><strong>${t('roles.alguacilTitulo')}</strong><br><small class="tenue">${t('roles.alguacilDesc')}</small></div>
+  <button class="btn ${S.alguacilActivo?'oro':'ghost'}" style="width:auto;margin:0;padding:8px 14px;flex:none" onclick="toggleAlguacil()">${S.alguacilActivo?t('roles.activado'):t('roles.desactivado')}</button>
  </div></div>
- <button class="btn oro" ${t!==need||!S.seleccion.lobo?'disabled':''} onclick="repartir()">Repartir cartas</button>
- <button class="btn ghost" onclick="pJugadores()">Atrás</button>`);
+ <button class="btn oro" ${t2!==need||!S.seleccion.lobo?'disabled':''} onclick="repartir()">${t('roles.repartir')}</button>
+ <button class="btn ghost" onclick="pJugadores()">${t('comun.atras')}</button>`);
 }
 function toggleAlguacil(){ S.alguacilActivo=!S.alguacilActivo; const y=window.scrollY; pRoles(); window.scrollTo(0,y); }
 function resumenSeleccion(){
  const e=Object.entries(S.seleccion).filter(([,c])=>c>0);
  if(!e.length) return '';
- return `<div class="card"><p class="tenue" style="margin:0 0 8px">En el mazo</p>
+ return `<div class="card"><p class="tenue" style="margin:0 0 8px">${t('roles.enMazo')}</p>
  <div style="display:flex;flex-wrap:wrap;gap:8px">${e.map(([k,c])=>`<span style="display:flex;align-items:center;gap:5px;background:#0E1020;border-radius:8px;padding:6px 10px;font-size:.86rem"><span style="color:${colorBando(ROLES[k].b)}">${icono(k,18)}</span>${ROLES[k].n}${c>1?' ×'+c:''}</span>`).join('')}</div></div>`;
 }
 function setRol(k,d){
@@ -426,34 +768,34 @@ function pReparto(){
  if(S.idx>=S.jugadores.length) return pListos();
  const j=S.jugadores[S.idx];
  render(`<div class="fade centro" style="padding-top:12vh">
-  <p class="tenue">Pásale el móvil a</p><h1>${esc(j.nombre)}</h1>
-  <p class="tenue">Que nadie más mire la pantalla.</p>
-  <button class="btn oro" onclick="verRol()">Soy ${esc(j.nombre)}, ver mi carta</button></div>`,true);
+  <p class="tenue">${t('reparto.pasa')}</p><h1>${esc(j.nombre)}</h1>
+  <p class="tenue">${t('reparto.noMires')}</p>
+  <button class="btn oro" onclick="verRol()">${t('reparto.soyPrefijo')}${esc(j.nombre)}${t('reparto.soySufijo')}</button></div>`,true);
 }
 function verRol(){
  const j=S.jugadores[S.idx], r=ROLES[j.rol];
  let extra='';
  if(j.rol==='hermana'||j.rol==='hermano'){
   const o=S.jugadores.filter(p=>p.rol===j.rol&&p!==j).map(p=>p.nombre);
-  if(o.length) extra=`<p>Tu gente: <strong>${esc(o.join(', '))}</strong>.</p>`;
+  if(o.length) extra=`<p>${t('verRol.tuGente')}<strong>${esc(o.join(', '))}</strong>.</p>`;
  }
  if(r.b==='lobos'){
   const m=S.jugadores.filter(p=>ROLES[p.rol].b==='lobos'&&p!==j).map(p=>p.nombre);
-  extra=`<p>${m.length?'Tu manada: <strong>'+esc(m.join(', '))+'</strong>.':'Cazas en solitario.'}</p>`;
+  extra=`<p>${m.length?t('verRol.tuManada')+'<strong>'+esc(m.join(', '))+'</strong>.':t('verRol.solitario')}</p>`;
  }
  render(`<div class="fade centro" style="padding-top:7vh">
-  <p class="tenue">${esc(j.nombre)}, eres</p>
+  <p class="tenue">${esc(j.nombre)}${t('verRol.eres')}</p>
   <div class="icono-marco" style="color:${colorBando(r.b)}">${icono(j.rol,44)}</div>
   <h1 style="color:${r.b==='lobos'?'var(--brasa)':r.b==='solo'?'var(--lila)':'var(--luna)'}">${r.n}</h1>
   <div class="card"><p>${r.d}</p>${extra}</div>
-  <button class="btn" onclick="S.idx++;pReparto()">Ocultar y pasar el móvil</button></div>`,true);
+  <button class="btn" onclick="S.idx++;pReparto()">${t('verRol.ocultar')}</button></div>`,true);
 }
 function pListos(){
  S._pantalla='listos';
  render(`<div class="fade centro" style="padding-top:12vh"><div class="luna-grande">🌘</div>
-  <h2>Todos tienen carta</h2>
-  <p class="tenue">Ahora el móvil se queda con el narrador. Él leerá en voz alta lo que aparezca en pantalla.</p>
-  <button class="btn brasa" onclick="empezarNoche()">Que caiga la noche</button></div>`,true);
+  <h2>${t('listos.titulo')}</h2>
+  <p class="tenue">${t('listos.texto')}</p>
+  <button class="btn brasa" onclick="empezarNoche()">${t('comun.queCaigaLaNoche')}</button></div>`,true);
 }
 
 /* ============ NOCHE ============ */
@@ -482,50 +824,50 @@ function empezarNoche(){
 function pasoNoche(){
  S._pantalla='noche';
  if(S.paso>=S.pendientes.length) return pAmanece();
- const t=S.pendientes[S.paso];
+ const tp=S.pendientes[S.paso];
  window._sig=()=>{S.paso++;pasoNoche();};
- const iconoPaso={amantes:'cupido',lobos:'lobo',encantados:'flautista'}[t]||t;
+ const iconoPaso={amantes:'cupido',lobos:'lobo',encantados:'flautista'}[tp]||tp;
  const picks=(fn,filtro)=>vivos().filter(filtro||(()=>true))
    .map(j=>`<button class="pick" onclick="${fn}('${esc(j.nombre).replace(/'/g,"\\'")}')">${esc(j.nombre)}</button>`).join('');
  const marco=(titulo,guion,cuerpo)=>render(`<div class="fade">
-  <header class="top"><span class="tenue">Noche ${S.noche}</span><span class="tenue">${S.paso+1}/${S.pendientes.length}</span></header>
-  <h2 style="display:flex;align-items:center;gap:10px"><span style="color:${colorBando(t==='lobos'||t==='feroz'||t==='albino'||t==='infecto'?'lobos':t==='flautista'||t==='encantados'?'solo':'aldea')}">${icono(iconoPaso,30)}</span>${titulo}</h2>
+  <header class="top"><span class="tenue">${t('noche.label')} ${S.noche}</span><span class="tenue">${S.paso+1}/${S.pendientes.length}</span></header>
+  <h2 style="display:flex;align-items:center;gap:10px"><span style="color:${colorBando(tp==='lobos'||tp==='feroz'||tp==='albino'||tp==='infecto'?'lobos':tp==='flautista'||tp==='encantados'?'solo':'aldea')}">${icono(iconoPaso,30)}</span>${titulo}</h2>
   <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">${guion}</div>${cuerpo}</div>`,true);
 
  const P={
-  ladron:()=>marco('El Ladrón','«Ladrón, despierta. Estas son las dos cartas que sobraron.»',
+  ladron:()=>marco(t('noche.ladron.t'),t('noche.ladron.g'),
    `<div class="grid">${S.centro.map((c,i)=>`<button class="pick" onclick="ladronRoba(${i})"><span style="color:${colorBando(ROLES[c].b)}">${icono(c,26)}</span><br>${ROLES[c].n}</button>`).join('')}</div>
-    <p class="tenue">Si las dos son lobo, está obligado a cogerlas.</p>
-    <button class="btn ghost" onclick="_sig()">Se queda como está</button>`),
-  cupido:()=>marco('Cupido','«Cupido, despierta y elige a los dos enamorados.»',
+    <p class="tenue">${t('noche.ladron.hint')}</p>
+    <button class="btn ghost" onclick="_sig()">${t('noche.ladron.btn')}</button>`),
+  cupido:()=>marco(t('noche.cupido.t'),t('noche.cupido.g'),
    `<div class="grid">${picks('elegirAmante')}</div><p class="centro">${S.amantes.map(esc).join(' ♥ ')}</p>`),
-  amantes:()=>marco('Los enamorados','«Enamorados, abrid los ojos y miraos. Si uno muere, el otro muere de pena.»',
-   `<button class="btn" onclick="_sig()">Ya se han visto</button>`),
-  hermana:()=>marco('Las dos hermanas','«Hermanas, abrid los ojos y reconoceos.»',`<button class="btn" onclick="_sig()">Listo</button>`),
-  hermano:()=>marco('Los tres hermanos','«Hermanos, abrid los ojos y reconoceos.»',`<button class="btn" onclick="_sig()">Listo</button>`),
-  perrolobo:()=>marco('El Perro-Lobo','«Perro-Lobo, decide: ¿aldeano o lobo?»',
-   `<button class="btn brasa" onclick="perroElige(true)">Se une a los lobos</button>
-    <button class="btn" onclick="perroElige(false)">Se queda como aldeano</button>`),
-  salvaje:()=>marco('Niño Salvaje','«Niño Salvaje, despierta y elige a tu mentor.»',
+  amantes:()=>marco(t('noche.amantes.t'),t('noche.amantes.g'),
+   `<button class="btn" onclick="_sig()">${t('noche.amantes.btn')}</button>`),
+  hermana:()=>marco(t('noche.hermana.t'),t('noche.hermana.g'),`<button class="btn" onclick="_sig()">${t('comun.listo')}</button>`),
+  hermano:()=>marco(t('noche.hermano.t'),t('noche.hermano.g'),`<button class="btn" onclick="_sig()">${t('comun.listo')}</button>`),
+  perrolobo:()=>marco(t('noche.perrolobo.t'),t('noche.perrolobo.g'),
+   `<button class="btn brasa" onclick="perroElige(true)">${t('noche.perrolobo.si')}</button>
+    <button class="btn" onclick="perroElige(false)">${t('noche.perrolobo.no')}</button>`),
+  salvaje:()=>marco(t('noche.salvaje.t'),t('noche.salvaje.g'),
    `<div class="grid">${picks('elegirMentor',j=>j.rol!=='salvaje')}</div>`),
   sectario:()=>{
    if(!S.sectarioGrupos) S.sectarioGrupos={a:[],b:[]};
    if(!S.sectarioListo){
     const grupoDe=n=>S.sectarioGrupos.a.includes(n)?'a':S.sectarioGrupos.b.includes(n)?'b':null;
     const todos=vivos().every(j=>grupoDe(j.nombre));
-    return marco('El Sectario','«Narrador, divide a los vecinos en dos grupos. Luego enséñaselos al Sectario.»',
+    return marco(t('noche.sectario.t'),t('noche.sectario.g1'),
      `<div class="rowlist">${vivos().map(j=>{const g=grupoDe(j.nombre);return `<div class="chip"><span>${esc(j.nombre)}</span>
-       <button class="btn ghost" style="width:auto;margin:0;padding:6px 10px" onclick="sectarioAsigna('${esc(j.nombre).replace(/'/g,"\\'")}')">${g==='a'?'Grupo A':g==='b'?'Grupo B':'Sin grupo'}</button></div>`;}).join('')}</div>
-      <button class="btn" ${todos?'':'disabled'} onclick="S.sectarioListo=true;pasoNoche()">Enseñarle los grupos al Sectario</button>`);
+       <button class="btn ghost" style="width:auto;margin:0;padding:6px 10px" onclick="sectarioAsigna('${esc(j.nombre).replace(/'/g,"\\'")}')">${g==='a'?t('noche.sectario.grupoA'):g==='b'?t('noche.sectario.grupoB'):t('noche.sectario.sinGrupo')}</button></div>`;}).join('')}</div>
+      <button class="btn" ${todos?'':'disabled'} onclick="S.sectarioListo=true;pasoNoche()">${t('noche.sectario.mostrar')}</button>`);
    }
-   return marco('El Sectario','«Sectario, estos son los dos grupos. Gana si muere uno entero, sea del bando que sea.»',
-    `<div class="card"><strong>Grupo A</strong><p>${S.sectarioGrupos.a.map(esc).join(', ')}</p></div>
-     <div class="card"><strong>Grupo B</strong><p>${S.sectarioGrupos.b.map(esc).join(', ')}</p></div>
-     <button class="btn" onclick="_sig()">Ya los ha visto</button>`);
+   return marco(t('noche.sectario.t'),t('noche.sectario.g2'),
+    `<div class="card"><strong>${t('noche.sectario.grupoA')}</strong><p>${S.sectarioGrupos.a.map(esc).join(', ')}</p></div>
+     <div class="card"><strong>${t('noche.sectario.grupoB')}</strong><p>${S.sectarioGrupos.b.map(esc).join(', ')}</p></div>
+     <button class="btn" onclick="_sig()">${t('noche.sectario.vistos')}</button>`);
   },
-  gitana:()=>marco('La Gitana','«Gitana, haz tu pregunta a los muertos. El espíritu responde sí o no.»',
-   `<p class="tenue">${S.jugadores.filter(j=>!j.vivo).map(j=>esc(j.nombre)).join(', ')||'Aún no hay espíritus con quien hablar.'}</p>
-    <button class="btn" onclick="_sig()">Ya ha preguntado</button>`),
+  gitana:()=>marco(t('noche.gitana.t'),t('noche.gitana.g'),
+   `<p class="tenue">${S.jugadores.filter(j=>!j.vivo).map(j=>esc(j.nombre)).join(', ')||t('noche.gitana.vacio')}</p>
+    <button class="btn" onclick="_sig()">${t('noche.gitana.btn')}</button>`),
   comediante:()=>{
    if(!S.comedianteCartas){
     const pool=['vidente','salvador','zorro','gitana','bruja','guardia'].filter(k=>!S.seleccion[k]);
@@ -533,64 +875,64 @@ function pasoNoche(){
     S.comedianteCartas=pool.slice(0,3);
    }
    return S.comedianteCartas.length
-    ?marco('El Comediante','«Comediante, elige cuál de las tres cartas de la mesa vas a interpretar esta noche.»',
+    ?marco(t('noche.comediante.t'),t('noche.comediante.g'),
       `<div class="grid">${S.comedianteCartas.map(k=>`<button class="pick" onclick="comedianteUsa('${k}')"><span style="color:${colorBando(ROLES[k].b)}">${icono(k,26)}</span><br>${ROLES[k].n}</button>`).join('')}</div>
-       <button class="btn ghost" onclick="_sig()">Esta noche no actúa</button>`)
-    :marco('El Comediante','«Comediante, no quedan cartas libres esta partida.»',
-      `<button class="btn" onclick="_sig()">Vale</button>`);
+       <button class="btn ghost" onclick="_sig()">${t('noche.comediante.noActua')}</button>`)
+    :marco(t('noche.comediante.t'),t('noche.comediante.gVacio'),
+      `<button class="btn" onclick="_sig()">${t('noche.comediante.vale')}</button>`);
   },
-  vidente:()=>marco('La Vidente','«Vidente, despierta y señala a quién quieres descubrir.»',
+  vidente:()=>marco(t('noche.vidente.t'),t('noche.vidente.g'),
    `<div class="grid">${picks('videnteVe',j=>j.rol!=='vidente')}</div>`),
-  salvador:()=>marco('El Salvador','«Salvador, despierta. ¿A quién proteges esta noche?»',
+  salvador:()=>marco(t('noche.salvador.t'),t('noche.salvador.g'),
    `<div class="grid">${picks('salvadorProtege',j=>j.nombre!==S.protegidoPrev)}</div>
-    ${S.protegidoPrev?`<p class="tenue centro">Anoche protegió a ${esc(S.protegidoPrev)}: hoy no puede repetir.</p>`:''}`),
-  zorro:()=>marco('El Zorro','«Zorro, despierta y olfatea a un vecino y a los dos que tiene al lado.»',
+    ${S.protegidoPrev?`<p class="tenue centro">${t('noche.salvador.anochePrefijo')}${esc(S.protegidoPrev)}${t('noche.salvador.anocheSufijo')}</p>`:''}`),
+  zorro:()=>marco(t('noche.zorro.t'),t('noche.zorro.g'),
    `<div class="grid">${picks('zorroOlfatea',j=>j.rol!=='zorro')}</div>`),
-  lobos:()=>marco('Los hombres lobo','«Lobos, abrid los ojos. Elegid a vuestra víctima.»',
+  lobos:()=>marco(t('noche.lobos.t'),t('noche.lobos.g'),
    `<div class="grid">${picks('lobosDevoran',j=>!esLobo(j))}</div>`),
-  nina:()=>marco('Niña Pequeña','«Mientras los lobos elegían, la Niña entreabrió los ojos para espiarlos. ¿La han pillado?»',
-   `<button class="btn brasa" onclick="ninaPillada()">Sí, la pillan espiando</button>
-    <button class="btn ghost" onclick="_sig()">No, no se dan cuenta</button>`),
-  feroz:()=>marco('El Lobo Feroz','«Lobo Feroz, aún no ha caído ninguno de los tuyos: elige una segunda víctima.»',
+  nina:()=>marco(t('noche.nina.t'),t('noche.nina.g'),
+   `<button class="btn brasa" onclick="ninaPillada()">${t('noche.nina.si')}</button>
+    <button class="btn ghost" onclick="_sig()">${t('noche.nina.no')}</button>`),
+  feroz:()=>marco(t('noche.feroz.t'),t('noche.feroz.g'),
    `<div class="grid">${picks('ferozDevora',j=>!esLobo(j)&&j.nombre!==S.victima)}</div>
-    <button class="btn ghost" onclick="_sig()">Se conforma con una</button>`),
-  albino:()=>marco('El Lobo Albino','«Lobo Albino, esta noche puedes devorar a uno de los tuyos.»',
+    <button class="btn ghost" onclick="_sig()">${t('noche.feroz.btn')}</button>`),
+  albino:()=>marco(t('noche.albino.t'),t('noche.albino.g'),
    `<div class="grid">${picks('albinoDevora',j=>esLobo(j)&&j.rol!=='albino')}</div>
-    <button class="btn ghost" onclick="_sig()">Esta noche no</button>`),
-  infecto:()=>marco('Infecto Padre de los Lobos','«Padre de los lobos: ¿infectas a la víctima en lugar de devorarla?»',
-   `<p class="tenue">Víctima de esta noche: <strong>${esc(S.victima||'—')}</strong>. Solo una vez por partida.</p>
-    <button class="btn brasa" ${S.victima?'':'disabled'} onclick="infectar()">Infectarla</button>
-    <button class="btn ghost" onclick="_sig()">No, que muera</button>`),
-  bruja:()=>marco('La Bruja','«Bruja, despierta. Esta es la víctima de esta noche.»',
-   `<div class="card centro"><p class="tenue">Muere esta noche</p><h3 style="color:var(--brasa)">${esc([S.victima,S.victima2].filter(Boolean).join(' y ')||'nadie')}</h3></div>
-    ${S.brujaVida&&S.victima?`<button class="btn" onclick="brujaSalva()">Usa la poción de vida</button>`:''}
-    ${S.brujaMuerte?`<p class="tenue">Poción de muerte: toca a quién envenena.</p><div class="grid">${picks('brujaMata')}</div>`:''}
-    <button class="btn ghost" onclick="_sig()">No hace nada</button>`),
-  flautista:()=>marco('El Flautista','«Flautista, despierta y encanta a dos vecinos con tu melodía.»',
+    <button class="btn ghost" onclick="_sig()">${t('noche.albino.btn')}</button>`),
+  infecto:()=>marco(t('noche.infecto.t'),t('noche.infecto.g'),
+   `<p class="tenue">${t('noche.infecto.victimaPrefijo')}<strong>${esc(S.victima||'—')}</strong>.${t('noche.infecto.victimaSufijo')}</p>
+    <button class="btn brasa" ${S.victima?'':'disabled'} onclick="infectar()">${t('noche.infecto.si')}</button>
+    <button class="btn ghost" onclick="_sig()">${t('noche.infecto.no')}</button>`),
+  bruja:()=>marco(t('noche.bruja.t'),t('noche.bruja.g'),
+   `<div class="card centro"><p class="tenue">${t('noche.bruja.muereEsta')}</p><h3 style="color:var(--brasa)">${esc([S.victima,S.victima2].filter(Boolean).join(' y ')||t('noche.bruja.nadie'))}</h3></div>
+    ${S.brujaVida&&S.victima?`<button class="btn" onclick="brujaSalva()">${t('noche.bruja.vida')}</button>`:''}
+    ${S.brujaMuerte?`<p class="tenue">${t('noche.bruja.muerteHint')}</p><div class="grid">${picks('brujaMata')}</div>`:''}
+    <button class="btn ghost" onclick="_sig()">${t('noche.bruja.noHaceNada')}</button>`),
+  flautista:()=>marco(t('noche.flautista.t'),t('noche.flautista.g'),
    `<div class="grid">${picks('encantar',j=>j.rol!=='flautista'&&!S.encantados.includes(j.nombre))}</div>
-    <p class="tenue centro">Encantados: ${S.encantados.map(esc).join(', ')||'ninguno'}</p>
-    <button class="btn ghost" onclick="_sig()">Continuar</button>`),
-  encantados:()=>marco('Los encantados','«Encantados, abrid los ojos y reconoceos. Seguid jugando con vuestro bando.»',
-   `<p class="tenue">${S.encantados.filter(n=>{const j=S.jugadores.find(p=>p.nombre===n);return j&&j.vivo;}).map(esc).join(', ')||'todavía nadie'}</p>
-    <button class="btn" onclick="_sig()">Listo</button>`),
-  guardia:()=>marco('El Guardia','«Guardia, prepara el anuncio que el Alguacil te ha encargado.»',
-   `<button class="btn" onclick="_sig()">Listo</button>`)
+    <p class="tenue centro">${t('noche.flautista.encantados')}${S.encantados.map(esc).join(', ')||t('noche.flautista.ninguno')}</p>
+    <button class="btn ghost" onclick="_sig()">${t('comun.continuar')}</button>`),
+  encantados:()=>marco(t('noche.encantados.t'),t('noche.encantados.g'),
+   `<p class="tenue">${S.encantados.filter(n=>{const j=S.jugadores.find(p=>p.nombre===n);return j&&j.vivo;}).map(esc).join(', ')||t('noche.encantados.nadie')}</p>
+    <button class="btn" onclick="_sig()">${t('comun.listo')}</button>`),
+  guardia:()=>marco(t('noche.guardia.t'),t('noche.guardia.g'),
+   `<button class="btn" onclick="_sig()">${t('comun.listo')}</button>`)
  };
- (P[t]||(()=>{S.paso++;pasoNoche();}))();
+ (P[tp]||(()=>{S.paso++;pasoNoche();}))();
 }
 
 /* --- acciones nocturnas --- */
 function comedianteUsa(rol){
- S.log.push(`El Comediante interpretó a ${ROLES[rol].n}.`);
+ S.log.push(`El Comediante interpretó a ${ROLES_ES[rol].n}.`);
  S.pendientes[S.paso]=rol; pasoNoche();
 }
 function ladronRoba(i){
  const l=vivosPorRol('ladron')[0], nuevoRol=S.centro[i];
  if(l){ S.centro[i]=l.rol; l.rol=nuevoRol; S.log.push('El Ladrón cambió de identidad.'); }
- render(`<div class="fade centro" style="padding-top:10vh"><p class="tenue">Solo para el Ladrón — ahora eres</p>
+ render(`<div class="fade centro" style="padding-top:10vh"><p class="tenue">${t('ladronRoba.solo')}</p>
   <div class="icono-marco" style="color:${colorBando(ROLES[nuevoRol].b)}">${icono(nuevoRol,44)}</div>
   <h1>${ROLES[nuevoRol].n}</h1><p class="tenue">${ROLES[nuevoRol].d}</p>
-  <button class="btn" onclick="S.paso++;pasoNoche()">Ya lo ha visto</button></div>`,true);
+  <button class="btn" onclick="S.paso++;pasoNoche()">${t('comun.yaLoHaVisto')}</button></div>`,true);
 }
 function elegirAmante(n){
  S.amantes.includes(n)? S.amantes=S.amantes.filter(a=>a!==n) : (S.amantes.length<2&&S.amantes.push(n));
@@ -621,11 +963,11 @@ function sectarioGana(){
 }
 function videnteVe(n){
  const j=S.jugadores.find(p=>p.nombre===n);
- render(`<div class="fade centro" style="padding-top:9vh"><p class="tenue">Enséñale la pantalla solo a la Vidente</p>
+ render(`<div class="fade centro" style="padding-top:9vh"><p class="tenue">${t('videnteVe.solo')}</p>
   <h2>${esc(n)}</h2>
   <div class="icono-marco" style="color:${colorBando(bandoDe(j))}">${icono(j.rol,44)}</div>
-  <h1 style="color:${esLobo(j)?'var(--brasa)':'var(--luna)'}">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?' (infectado)':''}</h1>
-  <button class="btn" onclick="S.paso++;pasoNoche()">Ya lo ha visto</button></div>`,true);
+  <h1 style="color:${esLobo(j)?'var(--brasa)':'var(--luna)'}">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?t('videnteVe.infectado'):''}</h1>
+  <button class="btn" onclick="S.paso++;pasoNoche()">${t('comun.yaLoHaVisto')}</button></div>`,true);
 }
 function salvadorProtege(n){ S.protegido=n; S.paso++; pasoNoche(); }
 function zorroOlfatea(n){
@@ -633,11 +975,11 @@ function zorroOlfatea(n){
  const trio=[l[(i-1+l.length)%l.length],l[i],l[(i+1)%l.length]];
  const hay=trio.some(esLobo);
  render(`<div class="fade centro" style="padding-top:9vh">
-  <p class="tenue">Solo para el Zorro — ${trio.map(p=>esc(p.nombre)).join(', ')}</p>
+  <p class="tenue">${t('zorro.solo')}${trio.map(p=>esc(p.nombre)).join(', ')}</p>
   <div class="icono-marco" style="color:${hay?'var(--brasa)':'var(--musgo)'}">${icono(hay?'lobo':'zorro',44)}</div>
-  <h1 style="color:${hay?'var(--brasa)':'var(--musgo)'}">${hay?'Huele a lobo':'Ni rastro'}</h1>
-  <p class="tenue">${hay?'Conserva su olfato una noche más.':'Pierde su poder el resto de la partida.'}</p>
-  <button class="btn" onclick="S.paso++;pasoNoche()">Continuar</button></div>`,true);
+  <h1 style="color:${hay?'var(--brasa)':'var(--musgo)'}">${hay?t('zorro.hueleLobo'):t('zorro.niRastro')}</h1>
+  <p class="tenue">${hay?t('zorro.conserva'):t('zorro.pierde')}</p>
+  <button class="btn" onclick="S.paso++;pasoNoche()">${t('comun.continuar')}</button></div>`,true);
 }
 function ataque(n){
  const j=S.jugadores.find(p=>p.nombre===n);
@@ -654,14 +996,14 @@ function ninaPillada(){
  S.paso++; pasoNoche();
 }
 function ferozDevora(n){ S.victima2=ataque(n); S.paso++; pasoNoche(); }
-function albinoDevora(n){ S.muertes.push({nombre:n,causa:'devorado por el Lobo Albino'}); S.paso++; pasoNoche(); }
+function albinoDevora(n){ S.muertes.push({nombre:n,causa:'albino'}); S.paso++; pasoNoche(); }
 function infectar(){
  const j=S.jugadores.find(p=>p.nombre===S.victima);
  if(j){ j.convertido=true; S.victima=null; S.infectoUsado=true; S.log.push(`${j.nombre} fue infectado y ahora caza con los lobos.`); }
  S.paso++; pasoNoche();
 }
 function brujaSalva(){ S.brujaVida=false; S.victima=null; S.log.push('La bruja usó la poción de vida.'); S.paso++; pasoNoche(); }
-function brujaMata(n){ S.brujaMuerte=false; S.muertes.push({nombre:n,causa:'envenenado por la Bruja'}); S.paso++; pasoNoche(); }
+function brujaMata(n){ S.brujaMuerte=false; S.muertes.push({nombre:n,causa:'bruja'}); S.paso++; pasoNoche(); }
 function encantar(n){
  if(!S.encantados.includes(n)) S.encantados.push(n);
  const nuevos=S.encantados.filter(x=>{const j=S.jugadores.find(p=>p.nombre===x);return j&&j.vivo;});
@@ -671,10 +1013,10 @@ function encantar(n){
 
 /* ============ AMANECE ============ */
 function pAmanece(){
- [S.victima,S.victima2].filter(Boolean).forEach(v=>S.muertes.push({nombre:v,causa:'devorado por los lobos'}));
+ [S.victima,S.victima2].filter(Boolean).forEach(v=>S.muertes.push({nombre:v,causa:'lobos'}));
  if(S.caballeroMuerto){
   const lobo=vivos().filter(esLobo)[0];
-  if(lobo) S.muertes.push({nombre:lobo.nombre,causa:'muerto por la espada oxidada'});
+  if(lobo) S.muertes.push({nombre:lobo.nombre,causa:'espada'});
   S.caballeroMuerto=false;
  }
  const caidos=[];
@@ -683,12 +1025,12 @@ function pAmanece(){
  pasaPorSucesor(caidos,'amanece',{gruñe});
 }
 function mostrarAmanecer(caidos,gruñe){
- render(`<div class="fade"><header class="top"><h2>Amanece</h2><span class="tenue">Día ${S.noche}</span></header>
+ render(`<div class="fade"><header class="top"><h2>${t('amanece.titulo')}</h2><span class="tenue">${t('dia.label')} ${S.noche}</span></header>
   ${caidos.length?caidos.map(c=>`<div class="card centro"><div class="icono-marco" style="color:${colorBando(ROLES[c.rol].b)}">${icono(c.rol,40)}</div>
-    <h3>${esc(c.nombre)}</h3><p class="tenue">${c.causa} — era <strong>${ROLES[c.rol].n}</strong></p></div>`).join('')
-   :'<div class="card centro"><h3>Nadie ha muerto</h3><p class="tenue">Alguien durmió con suerte.</p></div>'}
-  ${gruñe?`<div class="nota"><strong>Grrrr.</strong> El oso del Domador gruñe: hay un lobo sentado justo a su lado.</div>`:''}
-  <button class="btn" onclick="trasMuertes('dia')">Continuar</button></div>`,true);
+    <h3>${esc(c.nombre)}</h3><p class="tenue">${causaTexto(c.causa)} — ${t('comun.era')} <strong>${ROLES[c.rol].n}</strong></p></div>`).join('')
+   :`<div class="card centro"><h3>${t('amanece.nadieMurio')}</h3><p class="tenue">${t('amanece.suerte')}</p></div>`}
+  ${gruñe?`<div class="nota">${t('amanece.gruñe')}</div>`:''}
+  <button class="btn" onclick="trasMuertes('dia')">${t('comun.continuar')}</button></div>`,true);
 }
 function osoGruñe(){
  const l=vivos(), d=l.findIndex(j=>j.rol==='domador');
@@ -700,7 +1042,7 @@ function resolverMuerte(nombre,causa,caidos){
  if(!j||!j.vivo) return;
  j.vivo=false;
  caidos.push({nombre:j.nombre,causa,rol:j.rol});
- S.log.push(`${j.nombre} (${ROLES[j.rol].n}) — ${causa}.`);
+ S.log.push(`${j.nombre} (${ROLES_ES[j.rol].n}) — ${causaTexto(causa)}.`);
  if(esLobo(j)) S.loboMuerto=true;
  if(j.rol==='caballero') S.caballeroMuerto=true;
  if(j.rol==='cazador') S.cazadorPend=j.nombre;
@@ -710,14 +1052,14 @@ function resolverMuerte(nombre,causa,caidos){
  if(S.amantes.includes(j.nombre)){
   const otro=S.amantes.find(a=>a!==j.nombre);
   const p=S.jugadores.find(x=>x.nombre===otro);
-  if(p&&p.vivo) resolverMuerte(otro,'muerto de pena por su amor',caidos);
+  if(p&&p.vivo) resolverMuerte(otro,'amor',caidos);
  }
 }
 function trasMuertes(destino){
  if(S.cazadorPend){
   const n=S.cazadorPend; S.cazadorPend=null;
-  return render(`<div class="fade"><h2 style="display:flex;align-items:center;gap:10px"><span style="color:var(--oro)">${icono('cazador',30)}</span>El disparo del Cazador</h2>
-   <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">«${esc(n)} cae, pero alza el arma. ¿A quién se lleva con él?»</div>
+  return render(`<div class="fade"><h2 style="display:flex;align-items:center;gap:10px"><span style="color:var(--oro)">${icono('cazador',30)}</span>${t('cazador.titulo')}</h2>
+   <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">«${esc(n)}${t('cazador.guionResto')}»</div>
    <div class="grid">${vivos().map(j=>`<button class="pick" onclick="cazadorDispara('${esc(j.nombre).replace(/'/g,"\\'")}','${destino}')">${esc(j.nombre)}</button>`).join('')}</div></div>`,true);
  }
  const g=comprobarFin();
@@ -726,21 +1068,21 @@ function trasMuertes(destino){
  else empezarNoche();
 }
 function cazadorDispara(n,destino){
- const caidos=[]; resolverMuerte(n,'abatido por el Cazador',caidos);
+ const caidos=[]; resolverMuerte(n,'cazador',caidos);
  pasaPorSucesor(caidos,'cazador',{destino});
 }
 function mostrarCazador(caidos,destino){
  render(`<div class="fade centro" style="padding-top:10vh">${caidos.map(c=>`<div class="card"><h3>${esc(c.nombre)}</h3>
-  <p class="tenue">${c.causa} — era <strong>${ROLES[c.rol].n}</strong></p></div>`).join('')}
-  <button class="btn" onclick="trasMuertes('${destino}')">Continuar</button></div>`,true);
+  <p class="tenue">${causaTexto(c.causa)} — ${t('comun.era')} <strong>${ROLES[c.rol].n}</strong></p></div>`).join('')}
+  <button class="btn" onclick="trasMuertes('${destino}')">${t('comun.continuar')}</button></div>`,true);
 }
 function pasaPorSucesor(caidos,seguir,extra){
  if(S.alguacil && caidos.some(c=>c.nombre===S.alguacil)){
   S._sucesorCaidos=caidos; S._sucesorSeguir=seguir; S._sucesorExtra=extra||null;
   return render(`<div class="fade centro" style="padding-top:9vh">
-   <p class="tenue">El Alguacil ha muerto. Antes de revelar su carta, señala a su sucesor.</p>
+   <p class="tenue">${t('sucesor.texto')}</p>
    <div class="grid">${vivos().filter(j=>j.nombre!==S.alguacil).map(j=>`<button class="pick" onclick="elegirSucesor('${esc(j.nombre).replace(/'/g,"\\'")}')">${esc(j.nombre)}</button>`).join('')}</div>
-   <button class="btn ghost" onclick="elegirSucesor(null)">Que no haya sucesor</button></div>`,true);
+   <button class="btn ghost" onclick="elegirSucesor(null)">${t('sucesor.ninguno')}</button></div>`,true);
  }
  seguirSucesor(seguir,caidos,extra);
 }
@@ -762,13 +1104,13 @@ function elegirSucesor(nombre){
 function pEleccion(){
  S._pantalla='eleccion';
  const tot=Object.values(S.votosAlguacil).reduce((a,b)=>a+b,0), votantes=vivos().length;
- render(`<div class="fade"><header class="top"><h2>Elección del Alguacil</h2></header>
-  <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">«El pueblo elige a su Alguacil. Su voto valdrá doble el resto de la partida.»</div>
-  <p class="tenue">${tot}/${votantes} votos.</p>
+ render(`<div class="fade"><header class="top"><h2>${t('eleccion.titulo')}</h2></header>
+  <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">${t('eleccion.guion')}</div>
+  <p class="tenue">${tot}/${votantes} ${t('eleccion.votos')}</p>
   <div class="grid">${vivos().map(j=>{const c=S.votosAlguacil[j.nombre]||0;return `
    <button class="voto ${c?'con':''}" ${tot>=votantes?'disabled':''} onclick="votarAlguacil('${esc(j.nombre).replace(/'/g,"\\'")}')">
     <span class="cuenta ${c?'':'cero'}">${c}</span>${esc(j.nombre)}</button>`;}).join('')}</div>
-  ${tot?`<button class="btn oro" onclick="cerrarEleccion()">Cerrar elección</button>`:''}</div>`,true);
+  ${tot?`<button class="btn oro" onclick="cerrarEleccion()">${t('eleccion.cerrar')}</button>`:''}</div>`,true);
 }
 function votarAlguacil(n){
  const tot=Object.values(S.votosAlguacil).reduce((a,b)=>a+b,0);
@@ -791,23 +1133,23 @@ function pDia(){
  const tot=Object.values(S.votos).reduce((a,b)=>a+b,0);
  const votantes=vivos().filter(j=>!j.sinVoto).length;
  const puedeDoble = S.alguacil && vivos().some(j=>j.nombre===S.alguacil) && !S.votoAlguacilUsado;
- render(`<div class="fade"><header class="top"><h2>El pueblo debate</h2><span class="tenue">${vivos().length} vivos</span></header>
-  <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">«${S.sinDebateHoy?'Segunda votación por orden del Juez, sin debate. Votad directamente.':'Hablad. Cuando estéis listos, votad a quién lincháis.'}»</div>
+ render(`<div class="fade"><header class="top"><h2>${t('dia.titulo')}</h2><span class="tenue">${vivos().length} ${t('dia.vivos')}</span></header>
+  <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">${S.sinDebateHoy?t('dia.guionSinDebate'):t('dia.guionNormal')}</div>
   ${S.sinDebateHoy?'':`<div class="reloj-caja">
    <span class="reloj-num" id="reloj" style="${S.tempo.left<=15&&S.tempo.left>0?'color:var(--brasa)':''}">${fmt(S.tempo.left||DEBATE)}</span>
-   <button id="relojBtn" onclick="reloj()">${S.tempo.run?'Pausa':(S.tempo.left?'Seguir':'Empezar debate')}</button>
+   <button id="relojBtn" onclick="reloj()">${S.tempo.run?t('dia.pausa'):(S.tempo.left?t('dia.seguir'):t('dia.empezarDebate'))}</button>
    <span class="tenue" style="font-size:.85rem">2 min</span>
   </div>`}
-  ${vivos().some(j=>j.sinVoto)?`<p class="tenue">${vivos().filter(j=>j.sinVoto).map(j=>esc(j.nombre)).join(', ')} ya no vota: el pueblo sabe que es el Idiota.</p>`:''}
-  ${puedeDoble?`<button class="btn ${S.usarVotoDoble?'oro':'ghost'}" onclick="S.usarVotoDoble=!S.usarVotoDoble;pDia()">${S.usarVotoDoble?'Voto del Alguacil listo: toca a quién vota':'Emitir el voto del Alguacil (vale doble)'}</button>`:''}
-  <p class="tenue">Toca un nombre por cada voto que reciba. ${S.votosEmitidos}/${votantes} vecinos han votado.</p>
+  ${vivos().some(j=>j.sinVoto)?`<p class="tenue">${vivos().filter(j=>j.sinVoto).map(j=>esc(j.nombre)).join(', ')}${t('dia.idiotaSufijo')}</p>`:''}
+  ${puedeDoble?`<button class="btn ${S.usarVotoDoble?'oro':'ghost'}" onclick="S.usarVotoDoble=!S.usarVotoDoble;pDia()">${S.usarVotoDoble?t('dia.dobleListo'):t('dia.dobleEmitir')}</button>`:''}
+  <p class="tenue">${t('dia.tocaNombre')}${S.votosEmitidos}/${votantes}${t('dia.vecinosVotado')}</p>
   <div class="grid">${vivos().map(j=>{const c=S.votos[j.nombre]||0;return `
    <button class="voto ${c?'con':''}" ${S.votosEmitidos>=votantes?'disabled':''} onclick="votar('${esc(j.nombre).replace(/'/g,"\\'")}')" oncontextmenu="quitarVoto('${esc(j.nombre).replace(/'/g,"\\'")}');return false">
     <span class="cuenta ${c?'':'cero'}">${c}</span>${esc(j.nombre)}</button>`;}).join('')}</div>
-  ${tot?`<button class="btn oro" onclick="cerrarVotacion()">Cerrar votación</button>
-        <button class="btn ghost" onclick="limpiarVotos();pDia()">Borrar votos</button>`:''}
-  <button class="btn ghost" onclick="limpiarVotos();trasMuertes('noche')">Nadie es linchado</button>
-  <button class="btn ghost" onclick="pEstado()">Ver el pueblo</button></div>`,true);
+  ${tot?`<button class="btn oro" onclick="cerrarVotacion()">${t('dia.cerrarVotacion')}</button>
+        <button class="btn ghost" onclick="limpiarVotos();pDia()">${t('dia.borrarVotos')}</button>`:''}
+  <button class="btn ghost" onclick="limpiarVotos();trasMuertes('noche')">${t('dia.nadieLinchado')}</button>
+  <button class="btn ghost" onclick="pEstado()">${t('dia.verPueblo')}</button></div>`,true);
 }
 function votar(n){
  const votantes=vivos().filter(j=>!j.sinVoto).length;
@@ -822,19 +1164,19 @@ function cerrarVotacion(){
  const top=Object.keys(S.votos).filter(n=>S.votos[n]===max);
  if(top.length>1){
   const chivo=vivosPorRol('chivo')[0];
-  return render(`<div class="fade centro" style="padding-top:8vh"><h2>Empate</h2>
-   <p class="tenue">${top.map(esc).join(' · ')} — ${max} voto${max>1?'s':''} cada uno.</p>
+  return render(`<div class="fade centro" style="padding-top:8vh"><h2>${t('empate.titulo')}</h2>
+   <p class="tenue">${top.map(esc).join(' · ')} — ${max} ${t('empate.voto')}${max>1?'s':''} ${t('empate.cadaUno')}.</p>
    ${chivo?`<div class="card"><div class="icono-marco" style="color:var(--oro)">${icono('chivo',42)}</div>
-     <p>El Chivo Expiatorio paga los platos rotos.</p></div>
-     <button class="btn brasa" onclick="empate()">Muere ${esc(chivo.nombre)}</button>`:''}
-   <button class="btn ghost" onclick="limpiarVotos();pDia()">Repetir la votación</button>
-   <button class="btn ghost" onclick="limpiarVotos();trasMuertes('noche')">Nadie es linchado</button></div>`,true);
+     <p>${t('empate.chivoTexto')}</p></div>
+     <button class="btn brasa" onclick="empate()">${t('empate.muerePrefijo')}${esc(chivo.nombre)}</button>`:''}
+   <button class="btn ghost" onclick="limpiarVotos();pDia()">${t('empate.repetir')}</button>
+   <button class="btn ghost" onclick="limpiarVotos();trasMuertes('noche')">${t('dia.nadieLinchado')}</button></div>`,true);
  }
  limpiarVotos(); linchar(top[0]);
 }
 function empate(){
  const c=vivosPorRol('chivo')[0]; if(!c) return;
- const caidos=[]; resolverMuerte(c.nombre,'sacrificado por el empate',caidos);
+ const caidos=[]; resolverMuerte(c.nombre,'empate',caidos);
  revelar(caidos);
 }
 function linchar(n){
@@ -843,10 +1185,10 @@ function linchar(n){
   S.idiotaUsado=true; j.sinVoto=true; S.log.push(`${j.nombre} resultó ser el Idiota del Pueblo y se libró.`);
   return render(`<div class="fade centro" style="padding-top:9vh">
    <div class="icono-marco" style="color:var(--oro)">${icono('idiota',44)}</div>
-   <h1>${esc(n)} es el Idiota</h1><p class="tenue">El pueblo se ríe y le perdona la vida, pero pierde el derecho a votar.</p>
-   <button class="btn brasa" onclick="trasMuertes('noche')">Que caiga la noche</button></div>`,true);
+   <h1>${esc(n)}${t('idiota.esElIdiota')}</h1><p class="tenue">${t('idiota.texto')}</p>
+   <button class="btn brasa" onclick="trasMuertes('noche')">${t('comun.queCaigaLaNoche')}</button></div>`,true);
  }
- const caidos=[]; resolverMuerte(n,'linchado por el pueblo',caidos);
+ const caidos=[]; resolverMuerte(n,'pueblo',caidos);
  revelar(caidos);
 }
 function revelar(caidos){ pasaPorSucesor(caidos,'revelarSirvienta'); }
@@ -856,9 +1198,9 @@ function revelarSirvienta(caidos){
  if(candidatos.length){
   S.revelarPend=caidos;
   return render(`<div class="fade centro" style="padding-top:8vh">
-   <p class="tenue">Antes de revelar, la Abnegada Sirvienta puede robar el rol de alguien.</p>
+   <p class="tenue">${t('sirvienta.antes')}</p>
    <div class="grid">${candidatos.map(c=>`<button class="pick" onclick="sirventaRoba('${esc(c.nombre).replace(/'/g,"\\'")}')">${esc(c.nombre)}</button>`).join('')}</div>
-   <button class="btn ghost" onclick="revelarFinal(S.revelarPend)">No roba nada</button></div>`,true);
+   <button class="btn ghost" onclick="revelarFinal(S.revelarPend)">${t('sirvienta.noRoba')}</button></div>`,true);
  }
  revelarFinal(caidos);
 }
@@ -870,13 +1212,13 @@ function sirventaRoba(nombre){
 function revelarFinal(caidos){
  const anciano=caidos.some(c=>c.rol==='anciano'&&!c.robado);
  render(`<div class="fade centro" style="padding-top:6vh">
-  ${caidos.map(c=>c.robado?`<div class="card"><h3>${esc(c.nombre)}</h3><p class="tenue">${c.causa}</p>
-   <p class="tenue">Su rol pasó en secreto a la Abnegada Sirvienta.</p></div>`:`<div class="card"><h3>${esc(c.nombre)}</h3><p class="tenue">${c.causa}</p>
+  ${caidos.map(c=>c.robado?`<div class="card"><h3>${esc(c.nombre)}</h3><p class="tenue">${causaTexto(c.causa)}</p>
+   <p class="tenue">${t('sirvienta.secreto')}</p></div>`:`<div class="card"><h3>${esc(c.nombre)}</h3><p class="tenue">${causaTexto(c.causa)}</p>
    <div class="icono-marco" style="color:${colorBando(ROLES[c.rol].b)}">${icono(c.rol,42)}</div>
    <h2 style="color:${ROLES[c.rol].b==='lobos'?'var(--brasa)':ROLES[c.rol].b==='solo'?'var(--lila)':'var(--luna)'}">${ROLES[c.rol].n}</h2></div>`).join('')}
-  ${anciano?'<div class="aviso">Han linchado al Anciano: a partir de ahora todos los aldeanos pierden sus poderes.</div>':''}
-  ${vivosPorRol('juez').length&&!S.juezUsado?'<button class="btn oro" onclick="juezVota()">El Juez hace su señal: otra votación</button>':''}
-  <button class="btn brasa" onclick="trasMuertes('noche')">Que caiga la noche</button></div>`,true);
+  ${anciano?`<div class="aviso">${t('revelar.ancianoAviso')}</div>`:''}
+  ${vivosPorRol('juez').length&&!S.juezUsado?`<button class="btn oro" onclick="juezVota()">${t('juez.boton')}</button>`:''}
+  <button class="btn brasa" onclick="trasMuertes('noche')">${t('comun.queCaigaLaNoche')}</button></div>`,true);
  S.ronda1=false;
 }
 function juezVota(){
@@ -884,11 +1226,12 @@ function juezVota(){
  limpiarVotos(); pDia();
 }
 function pEstado(){
- render(`<header class="top"><h2>El pueblo</h2><button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pDia()">Atrás</button></header>
+ S._pantalla='estado';
+ render(`<header class="top"><h2>${t('estado.titulo')}</h2><button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pDia()">${t('comun.atras')}</button></header>
  <div class="rowlist">${S.jugadores.map(j=>`<div class="chip ${j.vivo?'':'muerto'}"><span style="display:flex;align-items:center;gap:7px">
    <span style="color:${colorBando(bandoDe(j))}">${icono(j.rol,20)}</span>${esc(j.nombre)}${j.nombre===S.alguacil?' 🎖️':''}</span>
-  <span class="tenue">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?' · infectado':''}${j.vivo?'':' · muerto'}</span></div>`).join('')}</div>
- <div class="card log">${S.log.map(l=>`<div>${esc(l)}</div>`).join('')||'<div>Aún no ha pasado nada.</div>'}</div>`,true);
+  <span class="tenue">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?t('estado.infectado'):''}${j.vivo?'':t('estado.muerto')}</span></div>`).join('')}</div>
+ <div class="card log">${S.log.map(l=>`<div>${esc(l)}</div>`).join('')||`<div>${t('estado.vacio')}</div>`}</div>`,true);
 }
 
 /* ============ FINAL ============ */
@@ -907,23 +1250,37 @@ function comprobarFin(){
  if(lobos.length>=otros) return 'lobos';
  return null;
 }
+const FIN_ES = {
+ aldea:['El pueblo respira','No queda ni un lobo en El Villar.','🌅'],
+ lobos:['La manada gana','Ya no queda nadie que pueda detenerlos.','🐺'],
+ amantes:['Ganan los enamorados','Se marcharon juntos y el pueblo ardió detrás.','♥'],
+ flautista:['El Flautista gana','Todo el pueblo baila al son de su melodía.','🎶'],
+ albino:['El Lobo Albino gana','Se comió incluso a los suyos.','🌕'],
+ angel:['El Ángel gana','Cayó en la primera ronda, que era justo lo que quería.','✨'],
+ sectario:['El Sectario gana','Todo un grupo cayó y él seguía en pie.','🕯️'],
+ nadie:['No queda nadie','El Villar se quedó vacío.','🌑']
+};
+const FIN_EN = {
+ aldea:['The village breathes again','Not a single wolf is left in El Villar.','🌅'],
+ lobos:['The pack wins',"There's no one left to stop them.",'🐺'],
+ amantes:['The lovers win','They left together and the village burned behind them.','♥'],
+ flautista:['The Piper wins','The whole village dances to their tune.','🎶'],
+ albino:['The Albino Wolf wins','They even ate their own.','🌕'],
+ angel:['The Angel wins','They fell in the first round, exactly as they wanted.','✨'],
+ sectario:['The Cultist wins','A whole group fell and they were still standing.','🕯️'],
+ nadie:['Nobody is left','El Villar was left empty.','🌑']
+};
 function pFin(g){
+ S._pantalla='fin'; S._finG=g;
  borrarGuardado();
- const T={aldea:['El pueblo respira','No queda ni un lobo en El Villar.','🌅'],
-  lobos:['La manada gana','Ya no queda nadie que pueda detenerlos.','🐺'],
-  amantes:['Ganan los enamorados','Se marcharon juntos y el pueblo ardió detrás.','♥'],
-  flautista:['El Flautista gana','Todo el pueblo baila al son de su melodía.','🎶'],
-  albino:['El Lobo Albino gana','Se comió incluso a los suyos.','🌕'],
-  angel:['El Ángel gana','Cayó en la primera ronda, que era justo lo que quería.','✨'],
-  sectario:['El Sectario gana','Todo un grupo cayó y él seguía en pie.','🕯️'],
-  nadie:['No queda nadie','El Villar se quedó vacío.','🌑']}[g];
- render(`<div class="fade centro"><div class="luna-grande">${T[2]}</div><h1>${T[0]}</h1><p class="tenue">${T[1]}</p>
+ const F=(idioma==='en'?FIN_EN:FIN_ES)[g];
+ render(`<div class="fade centro"><div class="luna-grande">${F[2]}</div><h1>${F[0]}</h1><p class="tenue">${F[1]}</p>
  <div class="rowlist">${S.jugadores.map(j=>`<div class="chip ${j.vivo?'':'muerto'}"><span>${esc(j.nombre)}</span>
-  <span class="tenue" style="display:flex;align-items:center;gap:7px">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?' · infectado':''}
+  <span class="tenue" style="display:flex;align-items:center;gap:7px">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?t('estado.infectado'):''}
   <span style="color:${colorBando(bandoDe(j))}">${icono(j.rol,20)}</span></span></div>`).join('')}</div>
  <div class="card log" style="text-align:left">${S.log.map(l=>`<div>${esc(l)}</div>`).join('')}</div>
- <button class="btn oro" onclick="otraPartida()">Otra partida con los mismos</button>
- <button class="btn ghost" onclick="S=nuevo();pInicio()">Empezar de cero</button></div>`);
+ <button class="btn oro" onclick="otraPartida()">${t('fin.otraPartida')}</button>
+ <button class="btn ghost" onclick="S=nuevo();pInicio()">${t('fin.empezarCero')}</button></div>`);
 }
 function otraPartida(){
  const nombres=S.jugadores.map(j=>j.nombre), sel=S.seleccion;
@@ -931,12 +1288,14 @@ function otraPartida(){
  S.jugadores=nombres.map(n=>({nombre:n,rol:null,vivo:true,convertido:false,mentor:null,protegido:false,sinVoto:false}));
  S.seleccion=sel; repartir();
 }
+document.documentElement.lang = idioma;
+actualizarLangBtn();
 (function iniciar(){
  try{
   const guardado=localStorage.getItem(GUARDADO);
   if(guardado){
    const datos=JSON.parse(guardado);
-   const ir={inicio:pInicio,jugadores:pJugadores,roles:pRoles,reparto:pReparto,listos:pListos,noche:pasoNoche,dia:pDia,eleccion:pEleccion}[datos&&datos._pantalla];
+   const ir=PANTALLAS()[datos&&datos._pantalla];
    if(datos&&datos.jugadores&&datos.jugadores.length&&ir){ S=datos; return ir(); }
   }
  }catch(e){}
