@@ -885,8 +885,9 @@ function juezVota(){
 }
 function pEstado(){
  render(`<header class="top"><h2>El pueblo</h2><button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pDia()">Atrás</button></header>
- <div class="rowlist">${S.jugadores.map(j=>`<div class="chip ${j.vivo?'':'muerto'}"><span>${esc(j.nombre)}</span>
-  <span class="tenue">${j.vivo?'vivo':ROLES[j.rol].n}</span></div>`).join('')}</div>
+ <div class="rowlist">${S.jugadores.map(j=>`<div class="chip ${j.vivo?'':'muerto'}"><span style="display:flex;align-items:center;gap:7px">
+   <span style="color:${colorBando(bandoDe(j))}">${icono(j.rol,20)}</span>${esc(j.nombre)}${j.nombre===S.alguacil?' 🎖️':''}</span>
+  <span class="tenue">${ROLES[j.rol].n}${j.convertido&&j.rol!=='perrolobo'?' · infectado':''}${j.vivo?'':' · muerto'}</span></div>`).join('')}</div>
  <div class="card log">${S.log.map(l=>`<div>${esc(l)}</div>`).join('')||'<div>Aún no ha pasado nada.</div>'}</div>`,true);
 }
 
