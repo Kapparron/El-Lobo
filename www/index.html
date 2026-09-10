@@ -263,19 +263,23 @@ const nuevo = () => ({jugadores:[],seleccion:{},idx:0,noche:0,paso:0,pendientes:
  sectarioGrupos:null,sectarioListo:false,
  juezUsado:false,sinDebateHoy:false,
  alguacilActivo:true,alguacil:null,votosAlguacil:{},votosEmitidos:0,votoAlguacilUsado:false,usarVotoDoble:false,
- _sucesorCaidos:null,_sucesorSeguir:null,_sucesorExtra:null});
+ _sucesorCaidos:null,_sucesorSeguir:null,_sucesorExtra:null,_pantalla:'inicio'});
 let S = nuevo();
+const GUARDADO='elLobo_partida';
+function guardar(){ try{ localStorage.setItem(GUARDADO,JSON.stringify(S)); }catch(e){} }
+function borrarGuardado(){ try{ localStorage.removeItem(GUARDADO); }catch(e){} }
 
 const vivos = () => S.jugadores.filter(j=>j.vivo);
 const vivosPorRol = r => vivos().filter(j=>j.rol===r);
 const bandoDe = j => j.convertido ? 'lobos' : ROLES[j.rol].b;
 const esLobo = j => bandoDe(j)==='lobos';
 const app = document.getElementById('app');
-const render = (h,enJuego=false) => { app.innerHTML = h; window.scrollTo(0,0); menuBtn.style.display = enJuego?'flex':'none'; };
+const render = (h,enJuego=false) => { app.innerHTML = h; window.scrollTo(0,0); menuBtn.style.display = enJuego?'flex':'none'; guardar(); };
 const esc = s => String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 
 /* ============ INICIO ============ */
 function pInicio(){
+ S._pantalla='inicio'; borrarGuardado();
  render(`<div class="fade centro">
   <img src="icon-512.png" alt="El Lobo" style="width:120px;height:120px;border-radius:24px;margin:10px auto;display:block">
   <h1>El Lobo</h1>
@@ -314,6 +318,7 @@ function pReglas(){
 }
 /* ============ JUGADORES ============ */
 function pJugadores(){
+ S._pantalla='jugadores';
  render(`<header class="top">
   <button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="pInicio()">‹ Menú</button>
   <h2 style="margin:0;flex:1;text-align:center">¿Quién juega?</h2>
@@ -342,6 +347,7 @@ function delJugador(i){ S.jugadores.splice(i,1); nombreDup=false; pJugadores(); 
 const totalSel = () => Object.values(S.seleccion).reduce((a,b)=>a+b,0);
 const cartasNecesarias = () => S.jugadores.length + (S.seleccion.ladron?2:0);
 function pRoles(){
+ S._pantalla='roles';
  const n=S.jugadores.length;
  if(!Object.keys(S.seleccion).length){
   S.seleccion={lobo:n<8?1:(n<12?2:3),vidente:1,bruja:1,cazador:1};
@@ -393,6 +399,7 @@ function repartir(){
  S.idx=0; pReparto();
 }
 function pReparto(){
+ S._pantalla='reparto';
  if(S.idx>=S.jugadores.length) return pListos();
  const j=S.jugadores[S.idx];
  render(`<div class="fade centro" style="padding-top:12vh">
@@ -419,6 +426,7 @@ function verRol(){
   <button class="btn" onclick="S.idx++;pReparto()">Ocultar y pasar el móvil</button></div>`,true);
 }
 function pListos(){
+ S._pantalla='listos';
  render(`<div class="fade centro" style="padding-top:12vh"><div class="luna-grande">🌘</div>
   <h2>Todos tienen carta</h2>
   <p class="tenue">Ahora el móvil se queda con el narrador. Él leerá en voz alta lo que aparezca en pantalla.</p>
@@ -449,6 +457,7 @@ function empezarNoche(){
  pasoNoche();
 }
 function pasoNoche(){
+ S._pantalla='noche';
  if(S.paso>=S.pendientes.length) return pAmanece();
  const t=S.pendientes[S.paso];
  window._sig=()=>{S.paso++;pasoNoche();};
@@ -728,6 +737,7 @@ function elegirSucesor(nombre){
 
 /* ============ ELECCIÓN DEL ALGUACIL ============ */
 function pEleccion(){
+ S._pantalla='eleccion';
  const tot=Object.values(S.votosAlguacil).reduce((a,b)=>a+b,0), votantes=vivos().length;
  render(`<div class="fade"><header class="top"><h2>Elección del Alguacil</h2></header>
   <div class="card" style="font-family:'Iowan Old Style','Palatino',Georgia,'Noto Serif',serif;font-size:1.15rem">«El pueblo elige a su Alguacil. Su voto valdrá doble el resto de la partida.»</div>
@@ -754,6 +764,7 @@ function cerrarEleccion(){
 /* ============ DÍA ============ */
 function limpiarVotos(){ S.votos={}; S.votosEmitidos=0; S.votoAlguacilUsado=false; S.usarVotoDoble=false; }
 function pDia(){
+ S._pantalla='dia';
  const tot=Object.values(S.votos).reduce((a,b)=>a+b,0);
  const votantes=vivos().filter(j=>!j.sinVoto).length;
  const puedeDoble = S.alguacil && vivos().some(j=>j.nombre===S.alguacil) && !S.votoAlguacilUsado;
@@ -873,6 +884,7 @@ function comprobarFin(){
  return null;
 }
 function pFin(g){
+ borrarGuardado();
  const T={aldea:['El pueblo respira','No queda ni un lobo en El Villar.','🌅'],
   lobos:['La manada gana','Ya no queda nadie que pueda detenerlos.','🐺'],
   amantes:['Ganan los enamorados','Se marcharon juntos y el pueblo ardió detrás.','♥'],
@@ -895,7 +907,17 @@ function otraPartida(){
  S.jugadores=nombres.map(n=>({nombre:n,rol:null,vivo:true,convertido:false,mentor:null,protegido:false,sinVoto:false}));
  S.seleccion=sel; repartir();
 }
-pInicio();
+(function iniciar(){
+ try{
+  const guardado=localStorage.getItem(GUARDADO);
+  if(guardado){
+   const datos=JSON.parse(guardado);
+   const ir={inicio:pInicio,jugadores:pJugadores,roles:pRoles,reparto:pReparto,listos:pListos,noche:pasoNoche,dia:pDia,eleccion:pEleccion}[datos&&datos._pantalla];
+   if(datos&&datos.jugadores&&datos.jugadores.length&&ir){ S=datos; return ir(); }
+  }
+ }catch(e){}
+ pInicio();
+})();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
