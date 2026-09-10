@@ -1,0 +1,31 @@
+CASTRONEGRO — narrador de bolsillo
+==================================
+
+Contenido de esta carpeta (www):
+  index.html      el juego entero
+  manifest.json   datos de la app (nombre, colores, iconos)
+  sw.js           service worker: hace que funcione sin conexión
+  icon-*.png      iconos de la app
+
+OPCIÓN A — Instalarlo como app sin generar APK
+  1. Sube esta carpeta a GitHub Pages, Netlify o cualquier hosting con https.
+  2. Abre la URL en Chrome (Android) y elige "Añadir a pantalla de inicio".
+  Nota: el service worker solo funciona en https o en localhost.
+
+OPCIÓN B — APK con PWABuilder (sin instalar nada)
+  1. Publica la carpeta como en la opción A.
+  2. Entra en pwabuilder.com, pega la URL y descarga el paquete Android.
+
+OPCIÓN C — APK en local con Capacitor
+  npm init -y
+  npm i @capacitor/core @capacitor/cli @capacitor/android
+  npx cap init castronegro com.tunombre.castronegro --web-dir=www
+  npx cap add android
+  npx cap sync
+  npx cap open android
+  En Android Studio: Build > Build APK. Sale en android/app/build/outputs/apk/
+
+Notas:
+  - No hay ninguna dependencia externa: funciona sin internet.
+  - El sonido usa Web Audio y arranca en cuanto el usuario toca un botón.
+  - Para cambiar el temporizador de debate, edita "const DEBATE=120" en index.html.
